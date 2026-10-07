@@ -147,3 +147,123 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - After the feature tests pass, ask the user to run the complete suite with `php artisan test --compact`.
 
 </laravel-boost-guidelines>
+
+# Project Decisions (distilled)
+
+Distilled from `docs/decisions.md`, the single source of truth. When a design question is not answered here, read the relevant step there before guessing. If a change alters a decision, update `docs/decisions.md` in the same change.
+
+## Product
+
+- "Laravel AI Blog": a public blog with one owner. An admin-only editor uses the OpenAI API to generate or enhance draft posts.
+- Stack: PHP 8.4, Laravel, Blade, Tailwind v4 (configured in CSS, no `tailwind.config.js`), MariaDB, Pest, Herd locally, cPanel in production.
+- No public registration, no password reset, no starter kit (no Breeze, Livewire or Jetstream).
+- Don't add tables, columns or features that were not agreed (comments, roles, likes and so on). Ask first.
+
+## Workflow
+
+- Every build stage runs the same loop: plan mode, approval, build, relevant tests, review against `docs/decisions.md`, commit.
+- Build order: foundations, data layer, login and admin shell, categories and tags admin, posts without AI, public site, AI integration, scheduler, JavaScript pass, deploy.
+- Don't start a later stage while an earlier one has failing tests. Don't start AI work before hand-written posts and the public site work.
+- Cloud work happens on a branch, never on main.
+
+## Data model
+
+- Tables, in migration order: users, categories, tags, posts, post_tag, ai_generations. One migration per table.
+- `users`: Laravel default plus an `is_admin` boolean.
+- `categories` and `tags`: `name` and a unique `slug`.
+- `posts`: `user_id`, `category_id` (required), `title`, unique `slug`, `excerpt` (nullable), `body` (long text, Markdown, nullable), `status`, `published_at` (nullable), soft deletes.
+- `post_tag`: pivot. One category per post, many tags per post.
+- `ai_generations`: `post_id` (nullable), `user_id`, `topic_input`, `field_states` (JSON), `request_payload` (JSON), `response_payload` (JSON), `model`, `status`, `error_message`, token counts, `duration_ms`. It logs every request, failures included.
+- `status` is a backed enum with three cases: Draft, Scheduled, Published.
+- Casts: status as the enum, `published_at` as a datetime, JSON columns as arrays.
+- Soft deletes on posts only. A trashed post keeps its slug reserved.
+- Foreign key constraints, relationships defined on both sides, and an explicit `$fillable` on every model. Never use `$guarded = []`.
+- Never edit a migration that has already run. Make a new migration instead.
+- Factories for every model, plus a seeder that creates the admin from `.env` values.
+
+## Auth and access
+
+- Hand-built login and logout only, using Laravel's built-in auth. Login is throttled and the session is regenerated on login.
+- Every admin route sits inside a group behind both the `auth` middleware and an admin Gate that checks `is_admin`.
+- Admin credentials are never written in code. The seeder reads them from `.env`.
+
+## Routing, controllers, validation
+
+- Thin controllers. Validation lives in one Form Request per form (login, post save, category, tag). No inline validation.
+- No business logic or API calls in controllers or views.
+- Public queries return only published posts. No public route may expose a draft, scheduled or trashed post.
+- The restore route explicitly includes trashed posts.
+- Save rules: a draft needs title and category. Publish and schedule need title, category, excerpt and body.
+- The editor uses buttons to set status: save draft, publish, schedule (date and time), delete. Every post can be edited whatever its status.
+- A category that any post uses, trashed posts included, cannot be deleted. Tags can be deleted freely. Deleting a post never deletes its category or tags.
+- The categories and tags panel lists, creates, edits and deletes them, and shows how many posts use each.
+
+## AI integration
+
+- One service class calls OpenAI through Laravel's HTTP client. No AI SDK.
+- The API key, model, timeout and token cap live in `config/services.php`, fed from `.env`. Call `env()` only inside config files. Never hard-code a model name anywhere else.
+- Each editor field (title, excerpt, body, category, tags) has an enhance toggle and a state:
+  - empty: generate
+  - toggled: enhance
+  - toggled and empty: generate
+  - filled and not toggled: untouched, sent to the AI as read-only context
+- Toggles default to on for empty fields and off for filled ones. Every field is always sent, with its state, in one standard payload.
+- The request uses OpenAI's strict JSON schema, built dynamically so it only asks for fields in the generate or enhance state. The server validates the reply and always discards output for untouched fields.
+- Minimum-content check: Generate or Enhance is blocked, and no request is sent, unless at least one field has enough content to work from. This check is separate from save validation, and its message appears only when Generate or Enhance is pressed.
+- Requests are synchronous with an explicit timeout on every request. The generate and enhance route is throttled.
+- Create an `ai_generations` row as pending before the call, then update it with the response, tokens and duration, or with the error.
+- On a timeout, rate limit or malformed reply, show a friendly message and keep everything the admin typed.
+- Categories: the AI picks only from existing categories, whose list is sent with the request.
+- Tags: the AI may propose new ones. Match them case-insensitively to existing tags, and create a tag only when nothing matches.
+- AI results appear inline in the form for review. Nothing is saved until the admin saves.
+- The API key must never appear in logs, stored payloads, the database, Blade or JavaScript.
+
+## Scheduled publishing
+
+- A scheduled task runs every minute, with overlap prevented. It publishes Scheduled posts whose `published_at` has passed. Nothing else changes a post from scheduled to published automatically.
+- Dates are stored in UTC, then entered and displayed in Europe/London. Convert at the form boundary.
+- An admin can unschedule a post (back to draft) or edit a scheduled post.
+- The admin list marks scheduled posts past their time as overdue.
+
+## Slugs
+
+- Generated from the title. The slug follows the title until the first publish, then freezes. After that, only a deliberate admin edit changes it.
+- Always build links with `route()` and named routes.
+
+## Blade and front end
+
+- Blade components with slots: a public layout, an admin layout, and small components such as post card, form field and status badge.
+- Public pages: home list with pagination, single post, category and tag archives. Admin pages: login, post list, editor, category and tag panels.
+- Markdown is rendered in exactly one component, using Laravel's built-in converter with raw HTML stripped and unsafe links blocked. It is styled by the Tailwind typography plugin, including its dark variant.
+- Unescaped Blade output (`{!! !!}`) is allowed only in that Markdown component.
+- The excerpt doubles as the page's meta description.
+- Search, filter and sort happen in the database query, never in Blade or JavaScript. They are driven by validated URL query parameters that pagination keeps. Search matches post titles and category names. Defaults: no search, no filter, newest first. One reusable piece of query logic serves the home page, the archives and the admin list.
+- The first build uses reload-based AI results and plain checkbox toggles. Autosave, enhance without reload and a dark mode toggle come in the later JavaScript pass.
+
+## Design
+
+- Mobile-first: unprefixed classes target phones and breakpoint prefixes add larger layouts. Never write desktop-first styles and patch them for phones.
+- Clean, text-focused design with a narrow reading column. The home page is a list of cards showing date, title, category and excerpt.
+- System fonts only. No external font or stylesheet requests.
+- The accent is `#4a95ba`. Define it and a darker shade once as Tailwind theme tokens and use them by name, never as repeated hex values.
+- In light mode, use the accent for backgrounds, borders and large elements, and the darker shade for link text. Never put light-accent link text on white. In dark mode, the accent works as text. Check final shades with a contrast checker.
+- Dark mode follows the system setting. Every colour needs a dark variant.
+- Tap targets must be touch-friendly, with no horizontal scroll at phone width.
+
+## Testing
+
+- Mostly feature tests. Unit tests for isolated classes such as the AI payload builder.
+- Locally, tests use the separate `laravel_blog_testing` database and never `laravel_blog`. Cloud sessions use in-memory SQLite.
+- Reset the database between feature tests. Tests must not depend on running order.
+- Always fake the HTTP client, with stray requests prevented. No test may reach OpenAI.
+- Scheduler tests move the clock.
+- Assert on database contents, not just status codes.
+- Must-cover areas: guest and non-admin refusals, throttled login, draft and publish save rules, the AI service, scheduled publishing, public visibility of draft, scheduled and trashed posts, search, filter and sort, slug freezing, and blocked category deletion.
+
+## Security
+
+- Never read, print or commit `.env` or any secret. Never put secrets in CLAUDE.md, skills, committed settings, logs or stored AI payloads.
+- The repository is public and git history is permanent, so commit nothing with personal or infrastructure details.
+- CSRF on every form, Form Requests for all input, `$fillable` on every model.
+- Use Eloquent or bound parameters. Never build SQL from strings.
+- Boost and other development tools stay in `require-dev`.
