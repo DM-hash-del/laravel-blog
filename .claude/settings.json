@@ -2,5 +2,18 @@
 	"permissions": {
 		"deny": ["Read(.env)", "Read(.env.*)", "Read(!.env.example)"],
     "ask": ["Bash(php artisan tinker *)"]
+	},
+	"hooks": {
+		"SessionStart": [
+			{
+				"matcher": "startup|resume",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bash \"$CLAUDE_PROJECT_DIR/scripts/cloud-setup.sh\""
+					}
+				]
+			}
+		]
 	}
 }
