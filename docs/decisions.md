@@ -66,10 +66,10 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 
 **Should be there**
 
-- [ ] Login and logout routes only, with validation on the login form.
-- [ ] Login rate limiting (throttling) and session regeneration on login.
-- [ ] Admin routes behind both the auth middleware and the admin Gate.
-- [ ] Admin credentials read from .env by the seeder, and .env listed in .gitignore.
+- [x] Login and logout routes only, with validation on the login form.
+- [x] Login rate limiting (throttling) and session regeneration on login.
+- [x] Admin routes behind both the auth middleware and the admin Gate.
+- [x] Admin credentials read from .env by the seeder, and .env listed in .gitignore.
 
 **Should not be there**
 
