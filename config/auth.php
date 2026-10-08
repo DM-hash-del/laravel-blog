@@ -114,4 +114,22 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Account
+    |--------------------------------------------------------------------------
+    |
+    | The single admin account is created by the AdminUserSeeder from these
+    | values. They are only needed while seeding and should be removed from
+    | the live .env file afterwards, then the config cache rebuilt so the
+    | cached configuration no longer holds them.
+    |
+    */
+
+    'admin' => [
+        'name' => env('ADMIN_NAME', 'Admin'),
+        'email' => env('ADMIN_EMAIL'),
+        'password' => env('ADMIN_PASSWORD'),
+    ],
+
 ];
