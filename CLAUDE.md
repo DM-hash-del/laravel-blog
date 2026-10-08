@@ -175,9 +175,10 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - `post_tag`: pivot. One category per post, many tags per post.
 - `ai_generations`: `post_id` (nullable), `user_id`, `topic_input`, `field_states` (JSON), `request_payload` (JSON), `response_payload` (JSON), `model`, `status`, `error_message`, token counts, `duration_ms`. It logs every request, failures included.
 - `status` is a backed enum with three cases: Draft, Scheduled, Published.
+- `ai_generations.status` is a backed enum: Pending, Completed, Failed.
 - Casts: status as the enum, `published_at` as a datetime, JSON columns as arrays.
 - Soft deletes on posts only. A trashed post keeps its slug reserved.
-- Foreign key constraints, relationships defined on both sides, and an explicit `$fillable` on every model. Never use `$guarded = []`.
+- Foreign key constraints, relationships defined on both sides, and an explicit fillable list on every model (the `#[Fillable]` attribute). Never use `$guarded = []` or `#[Unguarded]`.
 - Never edit a migration that has already run. Make a new migration instead.
 - Factories for every model, plus a seeder that creates the admin from `.env` values.
 
@@ -264,6 +265,6 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 
 - Never read, print or commit `.env` or any secret. Never put secrets in CLAUDE.md, skills, committed settings, logs or stored AI payloads.
 - The repository is public and git history is permanent, so commit nothing with personal or infrastructure details.
-- CSRF on every form, Form Requests for all input, `$fillable` on every model.
+- CSRF on every form, Form Requests for all input, an explicit `#[Fillable]` list on every model.
 - Use Eloquent or bound parameters. Never build SQL from strings.
 - Boost and other development tools stay in `require-dev`.

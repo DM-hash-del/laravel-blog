@@ -42,6 +42,8 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 - Generations live in their own table, so a failed generation is logged even if no post exists, and one post can have several generations.
 - One category per post, many tags.
 - Soft deletes on posts from the start.
+- ai_generations.status is a backed enum (pending, completed, failed), alongside the post status enum (draft, scheduled, published).
+- Only the agreed tables are created. Laravel's scaffolded password_reset_tokens, sessions, cache, jobs, job_batches and failed_jobs tables are removed: sessions and cache use files and the queue is sync (Step 4), and there is no password reset (Step 3).
 - Body is Markdown, rendered to HTML by Laravel's built-in Markdown converter (no custom parser needed), with safe settings confirmed in the Blade step. The AI returns structured JSON (title, excerpt, body, category, tags) that maps onto these columns.
 
 **Points to double check**
@@ -57,7 +59,7 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 | --- | --- |
 | Starter kit | None. The Livewire kit conflicts with the brief, and Breeze is not worth the risk of an unmaintained dependency |
 | Authentication | Hand-built login and logout using Laravel's built-in auth; no registration, no password reset |
-| Admin account | Created by a seeder that reads the email and password from .env |
+| Admin account | Created by a seeder that reads the email and password (and an optional name, defaulting to Admin) from .env through config/auth.php |
 | Admin flag and Gate | Keep is_admin on users and a Gate that checks it, protecting every admin route |
 
 **Authentication vs authorization:** the auth middleware answers "is someone logged in?". The Gate answers "is this logged-in user allowed to do this?". Admin routes use both.
@@ -377,7 +379,7 @@ This pulls together the security rules already decided in earlier steps, plus th
 | Layout | The subdomain's document root can only point inside public_html, so the project folder sits at public_html/project-folder and the document root points at its public folder. The project root is then inside the main domain's web root, so a protective .htaccess is added at the project root and verified with a harmless test file requested through the main domain before any real secrets are uploaded. Dotfiles such as .env appear to be blocked server-wide, but other files in a project root, such as composer.json, can be readable through the main domain, so a project root is not protected by default and a protective rule is required. Planned rule: refuse any request whose hostname is not the subdomain, so everything under the project folder is blocked when reached through the main domain. It is tested after deployment with a harmless file. If that verification fails, the fallback is a split layout: only the public folder's contents in public_html and the rest of the app outside it |
 | Artisan commands | With no terminal, one-off commands (migrations, caching) run through a temporary cron job that is removed afterwards. A test job has already run successfully with the full PHP path, so artisan commands can run the same way |
 | Database | Created in cPanel's MySQL Databases tool. The schema is loaded by running migrations through a one-off cron job, or by importing exported SQL in phpMyAdmin, which is available |
-| Admin account | The seeder also runs through a one-off cron job, reading credentials from the live .env, and those variables are removed from .env afterwards |
+| Admin account | The seeder also runs through a one-off cron job, reading credentials from the live .env, and those variables are removed from .env afterwards. The seeder runs before configuration is cached; once the admin variables are removed, config:cache (or config:clear) is run again so the cached configuration holds no admin password |
 | Scheduler | One cron entry every minute running Laravel's scheduler with the correct PHP path |
 | Live .env | Created with File Manager on the server, with debug off, a separate production app key generated locally and the production database and OpenAI values |
 | Writable folders | The storage and bootstrap cache folders must be writable |
@@ -395,6 +397,7 @@ This pulls together the security rules already decided in earlier steps, plus th
 - [ ] A version-check or phpinfo page left on the server.
 - [ ] Real secrets uploaded before the protection test passes.
 - [ ] Admin credentials left in the live .env after seeding.
+- [ ] Admin credentials left in the cached configuration (bootstrap/cache/config.php) after seeding.
 - [ ] A deny-everything rule at the project root, which would also block the subdomain's own pages.
 
 ## Step 16: Build order (agreed)
@@ -435,7 +438,7 @@ Use this when checking what Claude Code generates for the database layer.
 - [ ] Soft deletes on posts only, with the matching trait on the Post model.
 - [ ] Casts: status as an enum, published_at as a date-time, both JSON columns as arrays.
 - [ ] Relationships defined on both sides (post to user, category, tags and generations).
-- [ ] An explicit list of fillable fields on each model.
+- [ ] An explicit list of fillable fields on each model (Laravel 13's #[Fillable] attribute, as on the scaffolded User model).
 - [ ] Factories and a seeder so the dev site has sample data.
 
 **Should not be there**
