@@ -4,6 +4,7 @@
 @source '../../storage/framework/views/*.php';
 
 @theme {
+    --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --color-accent: #4a95ba;
     --color-accent-dark: #2f6f8f;
 }
