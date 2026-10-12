@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\PostAssistController;
 use App\Http\Controllers\Admin\PostController as AdminPostController;
 use App\Http\Controllers\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Auth\LoginController;
@@ -53,6 +54,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'can:access-admin'])
     Route::get('/', fn () => to_route('admin.posts.index'))->name('dashboard');
 
     Route::get('posts/trash', [AdminPostController::class, 'trash'])->name('posts.trash');
+    Route::match(['post', 'put'], 'posts/assist/{post?}', PostAssistController::class)->middleware('throttle:ai-assist')->name('posts.assist');
     Route::patch('posts/{post}/restore', [AdminPostController::class, 'restore'])->withTrashed()->name('posts.restore');
     Route::resource('posts', AdminPostController::class)->except(['show']);
 

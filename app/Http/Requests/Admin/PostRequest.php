@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Models\Category;
 use App\Models\Post;
+use App\Models\Tag;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -18,6 +19,11 @@ class PostRequest extends FormRequest
      * The format sent by the datetime-local input.
      */
     private const string DATE_TIME_FORMAT = 'Y-m-d\TH:i';
+
+    /**
+     * The most new tags that can be typed in one save.
+     */
+    private const int MAX_NEW_TAGS = 6;
 
     /**
      * Determine if the user is authorized to make this request.
@@ -44,6 +50,7 @@ class PostRequest extends FormRequest
             'new_category' => ['nullable', 'required_without:category_id', 'prohibits:category_id', 'string', 'max:255'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['integer', 'distinct', 'exists:tags,id'],
+            'new_tags' => ['nullable', 'string', 'max:400'],
             'excerpt' => ['nullable', 'string', 'max:65535', 'required_if:action,publish,schedule'],
             'body' => ['nullable', 'string', 'required_if:action,publish,schedule'],
             'published_at' => ['nullable', 'required_if:action,schedule', 'date_format:'.self::DATE_TIME_FORMAT],
@@ -125,6 +132,27 @@ class PostRequest extends FormRequest
                 }
             },
             function (Validator $validator): void {
+                if ($validator->errors()->has('new_tags')) {
+                    return;
+                }
+
+                $names = $this->newTagNames();
+
+                if (count($names) > self::MAX_NEW_TAGS) {
+                    $validator->errors()->add('new_tags', 'Add at most '.self::MAX_NEW_TAGS.' new tags at a time.');
+
+                    return;
+                }
+
+                foreach ($names as $name) {
+                    if (mb_strlen($name) > 50 || Str::slug($name) === '') {
+                        $validator->errors()->add('new_tags', "\"{$name}\" isn't a usable tag: use letters or numbers, up to 50 characters.");
+
+                        return;
+                    }
+                }
+            },
+            function (Validator $validator): void {
                 if ($this->action() !== 'schedule' || $validator->errors()->has('published_at')) {
                     return;
                 }
@@ -160,6 +188,16 @@ class PostRequest extends FormRequest
     public function newCategoryName(): ?string
     {
         return $this->filled('new_category') ? (string) $this->input('new_category') : null;
+    }
+
+    /**
+     * Get the new tag names typed into the New tags field.
+     *
+     * @return list<string>
+     */
+    public function newTagNames(): array
+    {
+        return Tag::namesFromList($this->input('new_tags'));
     }
 
     /**

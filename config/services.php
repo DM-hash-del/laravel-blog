@@ -28,6 +28,21 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    | OpenAI powers the admin editor's Generate / enhance button. The model
+    | name is read only from here; the key never leaves this config.
+    */
+
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL'),
+        'url' => 'https://api.openai.com/v1/chat/completions',
+        'timeout' => (int) env('OPENAI_TIMEOUT', 30),
+        'max_completion_tokens' => (int) env('OPENAI_MAX_COMPLETION_TOKENS', 2000),
+        'requests_per_minute' => (int) env('OPENAI_REQUESTS_PER_MINUTE', 5),
+        'duplicate_wait' => 35,
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

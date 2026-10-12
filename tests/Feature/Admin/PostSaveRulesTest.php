@@ -280,3 +280,37 @@ test('no category is created when the rest of the post fails validation', functi
     $this->assertDatabaseCount('posts', 0);
     $this->assertDatabaseCount('categories', 0);
 });
+
+test('new tags typed in the editor are created when the post saves', function () {
+    $this->actingAs($this->admin)
+        ->post(route('admin.posts.store'), postPayload(['new_tags' => 'Queues, Horizon ,  ']))
+        ->assertSessionHasNoErrors();
+
+    $post = Post::sole();
+    expect($post->tags()->orderBy('name')->pluck('slug')->all())->toBe(['horizon', 'queues'])
+        ->and(Tag::count())->toBe(2);
+});
+
+test('new tags reuse an existing tag with the same name, ignoring case', function () {
+    $php = Tag::factory()->create(['name' => 'php', 'slug' => 'php']);
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.posts.store'), postPayload(['tags' => [$php->id], 'new_tags' => 'PHP, php']))
+        ->assertSessionHasNoErrors();
+
+    expect(Tag::count())->toBe(1)
+        ->and(Post::sole()->tags->pluck('id')->all())->toBe([$php->id]);
+});
+
+test('too many or unusable new tags are rejected and nothing is created', function (string $newTags) {
+    $this->actingAs($this->admin)
+        ->post(route('admin.posts.store'), postPayload(['new_tags' => $newTags]))
+        ->assertSessionHasErrors('new_tags');
+
+    $this->assertDatabaseCount('posts', 0);
+    $this->assertDatabaseCount('tags', 0);
+})->with([
+    'more than six' => ['a, b, c, d, e, f, g'],
+    'no letters or numbers' => ['!!!'],
+    'over 50 characters' => [str_repeat('x', 51)],
+]);

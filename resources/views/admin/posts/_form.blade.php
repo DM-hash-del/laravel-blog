@@ -2,6 +2,12 @@
     $status = $post->exists ? $post->status : \App\Enums\PostStatus::Draft;
     $displayTimezone = config('app.display_timezone');
     $selectedTagIds = array_map('intval', old('tags', $post->tags->pluck('id')->all()));
+    $isEmpty = [
+        'title' => blank(old('title', $post->title)),
+        'excerpt' => blank(old('excerpt', $post->excerpt)),
+        'body' => blank(old('body', $post->body)),
+        'tags' => $selectedTagIds === [] && blank(old('new_tags')),
+    ];
     $scheduledFor = $status === \App\Enums\PostStatus::Scheduled
         ? $post->published_at->timezone($displayTimezone)->format('Y-m-d\TH:i')
         : null;
@@ -15,7 +21,10 @@
         @method('PUT')
     @endif
 
-    <x-form-field name="title" label="Title" :value="$post->title" required maxlength="255" />
+    <div class="flex flex-col gap-1">
+        <x-form-field name="title" label="Title" :value="$post->title" required maxlength="255" />
+        <x-enhance-toggle field="title" :is-empty="$isEmpty['title']" />
+    </div>
 
     @if ($post->isSlugFrozen())
         <x-form-field name="slug" label="Slug" :value="$post->slug" required maxlength="255" />
@@ -41,7 +50,7 @@
     </div>
 
     <x-form-field name="new_category" label="Or create a new category" maxlength="255"
-        hint="Leave the list on ‘Choose a category’ and type a name to create one." />
+        hint="Leave the list on ‘Choose a category’ and type a name to create one. Leave both empty and Generate / enhance picks the closest existing category, if one fits; it never creates or changes a category." />
 
     <fieldset class="flex flex-col gap-1.5">
         <legend class="text-sm font-medium">Tags</legend>
@@ -66,12 +75,22 @@
         @enderror
     </fieldset>
 
-    <x-form-textarea name="excerpt" label="Excerpt" :value="$post->excerpt" rows="3"
-        hint="A short summary, also used as the page's search description. Needed to publish or schedule." />
+    <div class="flex flex-col gap-1">
+        <x-form-field name="new_tags" label="New tags" maxlength="400"
+            hint="Comma separated. Created when you save, unless a tag with the same name already exists." />
+        <x-enhance-toggle field="tags" :is-empty="$isEmpty['tags']" />
+    </div>
+
+    <div class="flex flex-col gap-1">
+        <x-form-textarea name="excerpt" label="Excerpt" :value="$post->excerpt" rows="3"
+            hint="A short summary, also used as the page's search description. Needed to publish or schedule." />
+        <x-enhance-toggle field="excerpt" :is-empty="$isEmpty['excerpt']" />
+    </div>
 
     <div class="group flex flex-col gap-3">
         <x-form-textarea name="body" label="Body" :value="$post->body" rows="16" class="font-mono text-sm"
             hint="Written in Markdown. Needed to publish or schedule." />
+        <x-enhance-toggle field="body" :is-empty="$isEmpty['body']" />
 
         {{-- Unnamed, so it is never submitted. Hides the preview with CSS alone; the JavaScript pass adds live rendering. --}}
         <label for="show-preview" class="flex min-h-11 cursor-pointer items-center gap-2 self-start text-sm font-medium">
@@ -123,4 +142,18 @@
     @error('action')
         <p class="text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
     @enderror
+
+    {{-- After the save buttons, so pressing Enter in a field saves rather than calling the AI. --}}
+    <div class="flex flex-col gap-2 rounded-md border border-accent/40 bg-accent/5 p-4 dark:bg-accent/10">
+        <p class="text-sm text-gray-700 dark:text-gray-300">
+            Empty fields are generated and ticked fields are enhanced; the rest are used as context. Suggestions are filled in for review and nothing is saved until you save.
+        </p>
+        <button type="submit" formaction="{{ $post->exists ? route('admin.posts.assist', $post) : route('admin.posts.assist') }}" formnovalidate
+            class="{{ $secondaryButton }} self-start bg-white dark:bg-gray-900">
+            Generate / enhance with AI
+        </button>
+        @error('ai')
+            <p role="alert" class="text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
 </form>

@@ -206,7 +206,7 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 
 - One service class calls OpenAI through Laravel's HTTP client. No AI SDK.
 - The API key, model, timeout and token cap live in `config/services.php`, fed from `.env`. Call `env()` only inside config files. Never hard-code a model name anywhere else.
-- Each editor field (title, excerpt, body, category, tags) has an enhance toggle and a state:
+- Each editor field (title, excerpt, body, category, tags) has a state, and every field except category has an enhance toggle:
   - empty: generate
   - toggled: enhance
   - toggled and empty: generate
@@ -217,8 +217,12 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - Requests are synchronous with an explicit timeout on every request. The generate and enhance route is throttled.
 - Create an `ai_generations` row as pending before the call, then update it with the response, tokens and duration, or with the error.
 - On a timeout, rate limit or malformed reply, show a friendly message and keep everything the admin typed.
-- Categories: the AI picks only from existing categories, whose list is sent with the request.
+- Categories: the AI picks only from existing categories, whose list is sent with the request, and only when none is chosen. It may answer that none fits (nullable enum), leaving the category empty with a note. It never creates or changes a category.
 - Tags: the AI may propose new ones. Match them case-insensitively to existing tags, and create a tag only when nothing matches.
+- Code: `App\Services\PostAssistant` is the only class that calls OpenAI; helpers live in `App\Services\AiAssist`. `.env` settings: `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_TIMEOUT`, `OPENAI_MAX_COMPLETION_TOKENS`, `OPENAI_REQUESTS_PER_MINUTE`.
+- Minimum content: a 10+ character title, 40+ excerpt, 200+ body, a category, or 3+ tags. Failed generations store only a reason code, never OpenAI's error text.
+- AI-suggested tags that don't match an existing tag go into the editor's New tags field and are created only when the post is saved.
+- One AI request per admin at a time (cache lock); an identical repeat reuses the running request's outcome. The rate limit returns to the editor with a friendly message, never a bare 429.
 - AI results appear inline in the form for review. Nothing is saved until the admin saves.
 - The API key must never appear in logs, stored payloads, the database, Blade or JavaScript.
 
@@ -244,7 +248,7 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - Unescaped Blade output (`{!! !!}`) is allowed only in that Markdown component.
 - The excerpt doubles as the page's meta description.
 - Search, filter and sort happen in the database query, never in Blade or JavaScript. They are driven by validated URL query parameters that pagination keeps. Search matches post titles and category names. Defaults: no search, no filter, newest first. One reusable piece of query logic serves the home page, the archives and the admin list: `Post::published()` and `Post::listed()`, with parameters `search` and `sort=newest|oldest` validated by `PostListRequest`. The admin list alone also filters by `status` (validated by `Admin\PostListRequest`); public pages ignore it.
-- The first build uses reload-based AI results and plain checkbox toggles. Autosave, enhance without reload, a dark mode toggle, delete confirmations (including Move to trash) and a schedule date that appears only when Schedule is chosen, with a Confirm button, and a live Markdown preview (re-rendered as the admin types through a throttled admin-only endpoint that uses the same Markdown component) come in the later JavaScript pass. The editor's body preview already exists, showing the last saved body, with a CSS-only show/hide checkbox.
+- The first build uses reload-based AI results and plain checkbox toggles. Autosave, enhance without reload, a dark mode toggle, delete confirmations (including Move to trash) and a schedule date that appears only when Schedule is chosen, with a Confirm button, an AI request page lock (fetch, inert form, Generating… overlay, Cancel via AbortController) and a live Markdown preview (re-rendered as the admin types through a throttled admin-only endpoint that uses the same Markdown component) come in the later JavaScript pass. The editor's body preview already exists, showing the last saved body, with a CSS-only show/hide checkbox.
 
 ## Design
 

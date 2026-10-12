@@ -113,7 +113,8 @@ class PostController extends Controller
     /**
      * Fill, set the status of and save a post, then sync its tags, as one transaction.
      *
-     * A category typed into the editor is created here, so a failed save leaves no stray category.
+     * A category or tags typed into the editor are created here, so a failed save leaves nothing behind.
+     * Typed tags reuse an existing tag when the name matches, ignoring case.
      */
     private function save(Post $post, PostRequest $request): void
     {
@@ -131,7 +132,10 @@ class PostController extends Controller
             };
 
             $post->save();
-            $post->tags()->sync($request->tagIds());
+            $post->tags()->sync([
+                ...$request->tagIds(),
+                ...Tag::findOrCreateByNames($request->newTagNames())->modelKeys(),
+            ]);
         });
     }
 

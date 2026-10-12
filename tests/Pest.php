@@ -2,6 +2,7 @@
 
 use App\Models\Category;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /*
@@ -17,7 +18,8 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
  // ->use(RefreshDatabase::class)
-    ->in('Feature');
+    ->beforeEach(fn () => Http::preventStrayRequests())
+    ->in('Feature', 'Unit');
 
 /*
 |--------------------------------------------------------------------------
