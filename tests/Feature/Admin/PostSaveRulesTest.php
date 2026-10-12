@@ -58,7 +58,7 @@ test('publish and schedule need an excerpt and a body', function (string $action
             'action' => $action,
             'excerpt' => '',
             'body' => '',
-            'published_at' => now()->addDay()->timezone('Europe/London')->format('Y-m-d\TH:i'),
+            'published_at' => now()->addDay()->timezone(config('app.display_timezone'))->format('Y-m-d\TH:i'),
         ]))
         ->assertSessionHasErrors(['excerpt', 'body']);
 
