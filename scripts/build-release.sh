@@ -2,12 +2,20 @@
 # Build a production release zip for upload to cPanel (Step 15 of docs/decisions.md).
 #
 # Installs packages without development ones (so Boost, Pest and other dev tools
-# are absent), builds the front-end assets, and zips the app without secrets,
+# are absent), installs the exact npm packages from package-lock.json and builds
+# the front-end assets, and zips the app without secrets,
 # tests, docs, local runtime files or the Vite dev-server marker. The dev install
 # is always restored afterwards. Run from anywhere: bash scripts/build-release.sh
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+for command in git composer npm zip unzip; do
+    if ! command -v "$command" >/dev/null 2>&1; then
+        echo "Missing the $command command; install it and run the script again." >&2
+        exit 1
+    fi
+done
 
 if [ -n "$(git status --porcelain)" ]; then
     echo "Warning: the working tree has uncommitted changes; they will be included in the release." >&2
@@ -25,6 +33,9 @@ trap restore_dev_packages EXIT
 
 echo "Installing production packages only..."
 composer install --no-dev --optimize-autoloader --no-interaction --quiet
+
+echo "Installing npm packages from package-lock.json..."
+npm ci
 
 echo "Building front-end assets..."
 npm run build
