@@ -11,6 +11,7 @@ const modules = {
     '[data-schedule-panel]': () => import('./modules/schedule.js'),
     '[data-live-preview]': () => import('./modules/preview.js'),
     '[data-ai-assist]': () => import('./modules/ai-assist.js'),
+    '[data-autosave]': () => import('./modules/autosave.js'),
 };
 
 for (const [selector, load] of Object.entries(modules)) {

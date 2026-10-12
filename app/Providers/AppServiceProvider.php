@@ -29,6 +29,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::define('access-admin', fn (User $user): bool => $user->is_admin);
 
+        RateLimiter::for('post-autosave', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by($request->user()?->id ?: $request->ip()));
+
         RateLimiter::for('post-preview', fn (Request $request): Limit => Limit::perMinute(120)
             ->by($request->user()?->id ?: $request->ip()));
 

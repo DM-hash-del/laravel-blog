@@ -15,7 +15,9 @@
     $secondaryButton = 'min-h-11 rounded-md border border-gray-300 px-4 font-medium text-gray-800 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800';
 @endphp
 
-<form method="POST" action="{{ $action }}" class="flex flex-col gap-6">
+@php($autosaveUrl = ! $post->exists ? route('admin.posts.autosave') : ($status === \App\Enums\PostStatus::Draft ? route('admin.posts.autosave.update', $post) : null))
+{{-- Autosave (resources/js/modules/autosave.js) covers new posts and drafts only. --}}
+<form method="POST" action="{{ $action }}" class="flex flex-col gap-6" @if ($autosaveUrl) data-autosave data-autosave-url="{{ $autosaveUrl }}" @endif>
     @csrf
     @if ($post->exists)
         @method('PUT')
@@ -172,3 +174,5 @@
 </form>
 
 <x-ai-overlay />
+
+<x-toast />

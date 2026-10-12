@@ -57,6 +57,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'can:access-admin'])
     Route::get('posts/trash', [AdminPostController::class, 'trash'])->name('posts.trash');
     Route::match(['post', 'put'], 'posts/assist/{post?}', PostAssistController::class)->middleware('throttle:ai-assist')->name('posts.assist');
     Route::post('posts/preview', PostPreviewController::class)->middleware('throttle:post-preview')->name('posts.preview');
+    Route::post('posts/autosave', [AdminPostController::class, 'autosaveStore'])->middleware('throttle:post-autosave')->name('posts.autosave');
+    Route::put('posts/{post}/autosave', [AdminPostController::class, 'autosaveUpdate'])->middleware('throttle:post-autosave')->name('posts.autosave.update');
     Route::patch('posts/{post}/restore', [AdminPostController::class, 'restore'])->withTrashed()->name('posts.restore');
     Route::resource('posts', AdminPostController::class)->except(['show']);
 

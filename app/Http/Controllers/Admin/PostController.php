@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\PostStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\PostAutosaveRequest;
 use App\Http\Requests\Admin\PostListRequest;
 use App\Http\Requests\Admin\PostRequest;
 use App\Models\Category;
@@ -11,6 +12,7 @@ use App\Models\Post;
 use App\Models\Tag;
 use App\Services\AiAssist\AiRateLimit;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -53,6 +55,31 @@ class PostController extends Controller
         $this->save($post, $request);
 
         return to_route('admin.posts.index')->with('status', $this->savedMessage($post));
+    }
+
+    /**
+     * Autosave a new post as a draft, without leaving the New post page.
+     *
+     * The reply tells the editor where to send later saves, so the same draft is updated.
+     */
+    public function autosaveStore(PostAutosaveRequest $request): JsonResponse
+    {
+        $post = new Post;
+        $post->user()->associate($request->user());
+
+        $this->save($post, $request);
+
+        return $this->autosaved($post);
+    }
+
+    /**
+     * Autosave an existing draft. Scheduled and published posts are refused by the request.
+     */
+    public function autosaveUpdate(PostAutosaveRequest $request, Post $post): JsonResponse
+    {
+        $this->save($post, $request);
+
+        return $this->autosaved($post);
     }
 
     /**
@@ -138,6 +165,19 @@ class PostController extends Controller
                 ...Tag::findOrCreateByNames($request->newTagNames())->modelKeys(),
             ]);
         });
+    }
+
+    /**
+     * Describe an autosave for the editor: when it happened and where later saves go.
+     */
+    private function autosaved(Post $post): JsonResponse
+    {
+        return response()->json([
+            'saved_at' => $post->updated_at->timezone(config('app.display_timezone'))->format('H:i'),
+            'form_action' => route('admin.posts.update', $post),
+            'autosave_url' => route('admin.posts.autosave.update', $post),
+            'assist_url' => route('admin.posts.assist', $post),
+        ]);
     }
 
     /**

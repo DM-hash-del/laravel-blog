@@ -233,7 +233,7 @@ class PostRequest extends FormRequest
     /**
      * Get the post being updated, or null when creating one.
      */
-    private function editedPost(): ?Post
+    protected function editedPost(): ?Post
     {
         return $this->route('post');
     }
