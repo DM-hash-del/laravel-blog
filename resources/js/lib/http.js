@@ -23,27 +23,41 @@ function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 }
 
-export async function postJson(url, data, { signal } = {}) {
+async function send(url, body, extraHeaders, signal) {
     const response = await fetch(url, {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
-            'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
             'X-CSRF-TOKEN': csrfToken(),
+            ...extraHeaders,
         },
-        body: JSON.stringify(data),
+        body,
         credentials: 'same-origin',
         signal,
     });
 
-    const body = await response.json().catch(() => null);
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
         const retryAfter = Number.parseInt(response.headers.get('Retry-After') ?? '', 10);
 
-        throw new HttpError(response.status, body, Number.isNaN(retryAfter) ? null : retryAfter);
+        throw new HttpError(response.status, data, Number.isNaN(retryAfter) ? null : retryAfter);
     }
 
-    return body;
+    return data;
+}
+
+/**
+ * Send data as JSON.
+ */
+export function postJson(url, data, { signal } = {}) {
+    return send(url, JSON.stringify(data), { 'Content-Type': 'application/json' }, signal);
+}
+
+/**
+ * Send a whole form's data (including _method and array fields) exactly as a normal submit would.
+ */
+export function postForm(url, formData, { signal } = {}) {
+    return send(url, formData, {}, signal);
 }

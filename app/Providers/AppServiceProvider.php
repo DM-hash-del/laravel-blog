@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -32,9 +33,14 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('ai-assist', fn (Request $request): Limit => Limit::perMinute(config('services.openai.requests_per_minute'))
             ->by($request->user()?->id ?: $request->ip())
-            ->response(fn (Request $request, array $headers): RedirectResponse => back()
-                ->withInput($request->except(['_token', '_method', 'enhance']))
-                ->withErrors(['ai' => "Too many AI requests. Try again in {$headers['Retry-After']} seconds."])
-                ->withHeaders($headers)));
+            ->response(fn (Request $request, array $headers): RedirectResponse|JsonResponse => $request->expectsJson()
+                ? response()->json([
+                    'message' => "Too many AI requests. Try again in {$headers['Retry-After']} seconds.",
+                    'retry_after' => (int) $headers['Retry-After'],
+                ], 429, $headers)
+                : back()
+                    ->withInput($request->except(['_token', '_method', 'enhance']))
+                    ->withErrors(['ai' => "Too many AI requests. Try again in {$headers['Retry-After']} seconds."])
+                    ->withHeaders($headers)));
     }
 }

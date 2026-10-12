@@ -360,3 +360,89 @@ test('the editor shows Enhance boxes, ticked only for empty fields', function ()
         ->assertDontSee('<input type="checkbox" name="enhance[title]" value="1" checked', false)
         ->assertDontSee('name="enhance[category]"', false);
 });
+
+test('the in-place mode gets the suggestions as JSON, with nothing flashed to the session', function () {
+    $php = Tag::factory()->create(['name' => 'php', 'slug' => 'php']);
+    fakeOpenAiReply([
+        'excerpt' => 'In place excerpt.',
+        'body' => '## In place',
+        'category' => 'Laravel',
+        'tags' => ['PHP', 'pest'],
+    ]);
+
+    $this->actingAs($this->admin)
+        ->postJson(route('admin.posts.assist'), assistInput())
+        ->assertOk()
+        ->assertJsonPath('status', 'Suggestions added. Review them, then save.')
+        ->assertJsonPath('input.title', 'Testing Laravel Applications')
+        ->assertJsonPath('input.excerpt', 'In place excerpt.')
+        ->assertJsonPath('input.body', '## In place')
+        ->assertJsonPath('input.category_id', $this->category->id)
+        ->assertJsonPath('input.tags', [$php->id])
+        ->assertJsonPath('input.new_tags', 'pest')
+        ->assertJsonMissingPath('input.enhance')
+        ->assertJsonMissingPath('input._token');
+
+    expect(AiGeneration::sole()->status)->toBe(AiGenerationStatus::Completed)
+        ->and(session()->has('_old_input'))->toBeFalse()
+        ->and(session()->has('status'))->toBeFalse();
+    $this->assertDatabaseCount('posts', 0);
+});
+
+test('the in-place mode reports failures as JSON and logs them', function () {
+    Http::fake(['api.openai.com/*' => Http::response(['error' => ['message' => 'Busy']], 503)]);
+
+    $this->actingAs($this->admin)
+        ->postJson(route('admin.posts.assist'), assistInput())
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.ai.0', 'OpenAI returned an error (status 503). Your text is unchanged.');
+
+    expect(AiGeneration::sole()->status)->toBe(AiGenerationStatus::Failed)
+        ->and(session()->has('_old_input'))->toBeFalse();
+});
+
+test('the in-place mode still applies the minimum-content check before anything is sent', function () {
+    $this->actingAs($this->admin)
+        ->postJson(route('admin.posts.assist'), assistInput(['title' => 'Too short']))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('ai');
+
+    Http::assertNothingSent();
+    $this->assertDatabaseCount('ai_generations', 0);
+});
+
+test('the in-place mode gets the rate limit as JSON with the wait in seconds', function () {
+    fakeOpenAiReply(['excerpt' => 'E', 'body' => 'B', 'category' => 'Laravel', 'tags' => []]);
+
+    for ($attempt = 1; $attempt <= 5; $attempt++) {
+        $this->actingAs($this->admin)->postJson(route('admin.posts.assist'), assistInput(['title' => "Testing Laravel Applications {$attempt}"]))->assertOk();
+    }
+
+    $response = $this->actingAs($this->admin)
+        ->postJson(route('admin.posts.assist'), assistInput(['title' => 'One Request Too Many']))
+        ->assertTooManyRequests()
+        ->assertHeader('Retry-After');
+
+    expect($response->json('retry_after'))->toBeInt()->toBeGreaterThan(0)
+        ->and($response->json('message'))->toBe("Too many AI requests. Try again in {$response->json('retry_after')} seconds.");
+});
+
+test('the in-place mode works when editing an existing post', function () {
+    $post = Post::factory()->draft()->for($this->category)->create(['title' => 'Original Saved Title', 'body' => 'Original saved body.']);
+    fakeOpenAiReply(['body' => 'A much better body.']);
+
+    $this->actingAs($this->admin)
+        ->putJson(route('admin.posts.assist', $post), assistInput([
+            'title' => 'Original Saved Title',
+            'excerpt' => 'An excerpt the admin wrote.',
+            'body' => 'Original saved body.',
+            'category_id' => $this->category->id,
+            'new_tags' => 'one, two, three',
+            'enhance' => ['title' => '0', 'excerpt' => '0', 'body' => '1', 'tags' => '0'],
+        ]))
+        ->assertOk()
+        ->assertJsonPath('input.body', 'A much better body.')
+        ->assertJsonPath('input.excerpt', 'An excerpt the admin wrote.');
+
+    expect($post->fresh()->body)->toBe('Original saved body.');
+});

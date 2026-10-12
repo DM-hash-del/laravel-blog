@@ -154,12 +154,16 @@
         <p class="text-sm text-gray-700 dark:text-gray-300">
             Empty fields are generated and ticked fields are enhanced; the rest are used as context. Suggestions are filled in for review and nothing is saved until you save.
         </p>
-        <button type="submit" formaction="{{ $post->exists ? route('admin.posts.assist', $post) : route('admin.posts.assist') }}" formnovalidate
+        @php($assistUrl = $post->exists ? route('admin.posts.assist', $post) : route('admin.posts.assist'))
+        <button type="submit" formaction="{{ $assistUrl }}" formnovalidate data-ai-assist data-assist-url="{{ $assistUrl }}"
             class="{{ $secondaryButton }} self-start bg-white dark:bg-gray-900">
             Generate / enhance with AI
         </button>
         @error('ai')
             <p role="alert" class="text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
         @enderror
+        <p data-ai-status role="status" aria-live="polite" hidden class="text-sm"></p>
     </div>
 </form>
+
+<x-ai-overlay />

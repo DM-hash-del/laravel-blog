@@ -10,6 +10,7 @@ const modules = {
     '[data-theme-toggle]': () => import('./modules/theme.js'),
     '[data-schedule-panel]': () => import('./modules/schedule.js'),
     '[data-live-preview]': () => import('./modules/preview.js'),
+    '[data-ai-assist]': () => import('./modules/ai-assist.js'),
 };
 
 for (const [selector, load] of Object.entries(modules)) {
