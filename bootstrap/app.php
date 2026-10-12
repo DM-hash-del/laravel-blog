@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectUsersTo(fn (Request $request) => route('admin.posts.index'));
+
+        // Outside local and tests, only answer for the APP_URL host (a second layer behind the host's .htaccess).
+        $middleware->trustHosts();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

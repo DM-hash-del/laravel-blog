@@ -280,3 +280,4 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - CSRF on every form, Form Requests for all input, an explicit `#[Fillable]` list on every model.
 - Use Eloquent or bound parameters. Never build SQL from strings.
 - Boost and other development tools stay in `require-dev`.
+- Releases are built with `bash scripts/build-release.sh` (production packages, built assets, no secrets or dev files, checked before finishing). In production the app forces https, uses secure session cookies, logs at warning level and trusts only the `APP_URL` host. Never commit host names, paths or the live `.htaccess`.

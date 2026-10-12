@@ -405,6 +405,8 @@ This pulls together the security rules already decided in earlier steps, plus th
 | Scheduler | One cron entry every minute running Laravel's scheduler with the correct PHP path |
 | Live .env | Created with File Manager on the server, with debug off, a separate production app key generated locally and the production database and OpenAI values |
 | Writable folders | The storage and bootstrap cache folders must be writable |
+| Release build | scripts/build-release.sh builds release/laravel-blog-<commit>.zip (release/ is git-ignored): installs packages without development ones, runs npm run build, and zips the app without .env files (except .env.example), .git, node_modules, tests, docs, scripts, Claude and Boost files, public/hot, logs, cached views, sessions or bootstrap/cache PHP files. A check fails the build if .env, Boost, public/hot, tests, .git or node_modules is inside or the asset manifest is missing. The development install is always restored afterwards |
+| Production defaults | In production the app forces https URLs, session cookies default to secure (SESSION_SECURE_COOKIE can override), logs default to warning (LOG_LEVEL can override), and trusted hosts limit the app to the APP_URL host as a second layer behind the project-root .htaccess. Host names, paths and the .htaccess rules are kept out of the public repository |
 
 **Should be there**
 
@@ -437,7 +439,7 @@ Each stage follows the same loop: plan mode, approve the plan, build, run the te
 | 6. AI integration | The service class, logging, the enhance toggles in the editor, the throttle | Tests with the HTTP call faked |
 | 7. Scheduler | The scheduled publishing task and the overdue marker | Tests that move the clock |
 | 8. JavaScript pass | Run as sub-stages 8A to 8G (see Stage 8 sub-stages below): delete confirmations, dark mode toggle, schedule reveal with Confirm, live Markdown preview, enhance without reload with a page lock and Cancel, a live rate-limit countdown, and autosave | Good cloud task, checked manually in the browser |
-| 9. Deploy | Build, upload, the protection test, cron jobs, migrate, seed, security pass | Follows the hosting step |
+| 9. Deploy | Build, upload, the protection test, cron jobs, migrate, seed, security pass | Follows the hosting step. Code-complete: release build script and production defaults. The cPanel steps (protection test, live .env, one-off cron jobs, scheduler, security pass) are done by hand from a runbook given outside the repository, and the Step 15 checkboxes are ticked as each is confirmed |
 
 ### Stage 8 sub-stages
 
