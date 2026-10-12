@@ -111,15 +111,23 @@
         </section>
     </div>
 
-    <div class="flex flex-col gap-1.5">
+    {{-- With JavaScript (resources/js/modules/schedule.js) this stays hidden until Schedule is pressed, then submits with Confirm. --}}
+    <div data-schedule-panel @if ($errors->has('published_at') || old('action') === 'schedule') data-schedule-open @endif class="flex flex-col gap-1.5">
         <label for="published_at" class="text-sm font-medium">Schedule for</label>
-        <p id="published_at-hint" class="text-sm text-gray-600 dark:text-gray-400">UK time ({{ $displayTimezone }}). Used only by the schedule button.</p>
+        <p id="published_at-hint" class="text-sm text-gray-600 dark:text-gray-400">UK time ({{ $displayTimezone }}). Used only when scheduling.</p>
         <input id="published_at" name="published_at" type="datetime-local" value="{{ old('published_at', $scheduledFor) }}"
             @error('published_at') aria-invalid="true" aria-describedby="published_at-error" @enderror
             class="min-h-11 rounded-md border border-gray-300 bg-white px-3 text-base focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent sm:max-w-xs dark:border-gray-700 dark:bg-gray-900">
         @error('published_at')
             <p id="published_at-error" class="text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
         @enderror
+
+        <div data-schedule-actions hidden class="mt-2 flex flex-col gap-2 sm:flex-row">
+            <button type="submit" name="action" value="schedule" class="{{ $primaryButton }}">
+                {{ $status === \App\Enums\PostStatus::Scheduled ? 'Update schedule' : 'Confirm schedule' }}
+            </button>
+            <button type="button" data-schedule-cancel class="{{ $secondaryButton }}">Cancel</button>
+        </div>
     </div>
 
     <div class="flex flex-col gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:flex-wrap dark:border-gray-800">
@@ -129,14 +137,14 @@
                 <button type="submit" name="action" value="draft" class="{{ $secondaryButton }}">Unpublish</button>
                 @break
             @case(\App\Enums\PostStatus::Scheduled)
-                <button type="submit" name="action" value="schedule" class="{{ $primaryButton }}">Update schedule</button>
+                <button type="submit" name="action" value="schedule" data-schedule-trigger class="{{ $primaryButton }}">Update schedule</button>
                 <button type="submit" name="action" value="publish" class="{{ $secondaryButton }}">Publish now</button>
                 <button type="submit" name="action" value="draft" class="{{ $secondaryButton }}">Unschedule</button>
                 @break
             @default
                 <button type="submit" name="action" value="draft" class="{{ $secondaryButton }}">Save draft</button>
                 <button type="submit" name="action" value="publish" class="{{ $primaryButton }}">Publish</button>
-                <button type="submit" name="action" value="schedule" class="{{ $secondaryButton }}">Schedule</button>
+                <button type="submit" name="action" value="schedule" data-schedule-trigger class="{{ $secondaryButton }}">Schedule</button>
         @endswitch
     </div>
     @error('action')

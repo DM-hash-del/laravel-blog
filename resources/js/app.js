@@ -8,6 +8,7 @@
 const modules = {
     '[data-confirm]': () => import('./modules/confirm.js'),
     '[data-theme-toggle]': () => import('./modules/theme.js'),
+    '[data-schedule-panel]': () => import('./modules/schedule.js'),
 };
 
 for (const [selector, load] of Object.entries(modules)) {
