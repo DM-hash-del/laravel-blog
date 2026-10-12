@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\PostStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PostRequest;
+use App\Http\Requests\PostListRequest;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
@@ -16,16 +17,17 @@ use Illuminate\View\View;
 class PostController extends Controller
 {
     /**
-     * List the posts, newest first.
+     * List every live post, whatever its status, with the shared search and sort.
      */
-    public function index(): View
+    public function index(PostListRequest $request): View
     {
         $posts = Post::query()
             ->with('category')
-            ->latest()
-            ->paginate(25);
+            ->listed($request->filters(), 'created_at')
+            ->paginate(25)
+            ->withQueryString();
 
-        return view('admin.posts.index', ['posts' => $posts]);
+        return view('admin.posts.index', ['posts' => $posts, 'filters' => $request->filters()]);
     }
 
     /**

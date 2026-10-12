@@ -227,6 +227,9 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 | Search engines | The excerpt is reused as the page's meta description |
 | Search, filter, sort | Done in the database query, never in the browser. Controlled by URL query parameters so results are bookmarkable and pagination keeps them. Search matches post titles and category names with simple text matching. The only other control is sort direction. Defaults: no search, no filter, newest first. The same filter code serves the public home, the archives and the admin list |
 | Slug | Generated from the title. It follows the title while a post has never been published and is frozen at first publish (confirmed). Links are built from route names, so they update automatically wherever the slug is used |
+| Public URLs | Home at /, posts at /posts/{slug}, archives at /categories/{slug} and /tags/{slug}. Public pages show 10 posts per page. Only posts with status published are public; drafts, scheduled and trashed posts return 404 |
+| List controls | The search and sort query parameters are search (up to 100 characters) and sort (newest or oldest). Invalid parameters redirect to the same list without its query string, with an error. The shared query logic lives in Post's published and listed scopes. Public lists sort by publish date; the admin list sorts by created date because drafts have none. LIKE wildcards in a search are matched literally |
+| Markdown component | x-markdown takes the body as a prop (a slot would HTML-escape it first) and is styled by @tailwindcss/typography with prose-invert for dark mode |
 
 **Notes**
 

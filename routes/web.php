@@ -1,9 +1,12 @@
 <?php
 
-use App\Http\Controllers\Admin\CategoryController;
-use App\Http\Controllers\Admin\PostController;
-use App\Http\Controllers\Admin\TagController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\PostController as AdminPostController;
+use App\Http\Controllers\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CategoryArchiveController;
+use App\Http\Controllers\PostController;
+use App\Http\Controllers\TagArchiveController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,9 +18,10 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [PostController::class, 'index'])->name('home');
+Route::get('posts/{slug}', [PostController::class, 'show'])->name('posts.show');
+Route::get('categories/{category:slug}', CategoryArchiveController::class)->name('categories.show');
+Route::get('tags/{tag:slug}', TagArchiveController::class)->name('tags.show');
 
 /*
 |--------------------------------------------------------------------------
@@ -48,10 +52,10 @@ Route::post('logout', [LoginController::class, 'destroy'])->middleware('auth')->
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'can:access-admin'])->group(function () {
     Route::view('/', 'admin.dashboard')->name('dashboard');
 
-    Route::get('posts/trash', [PostController::class, 'trash'])->name('posts.trash');
-    Route::patch('posts/{post}/restore', [PostController::class, 'restore'])->withTrashed()->name('posts.restore');
-    Route::resource('posts', PostController::class)->except(['show']);
+    Route::get('posts/trash', [AdminPostController::class, 'trash'])->name('posts.trash');
+    Route::patch('posts/{post}/restore', [AdminPostController::class, 'restore'])->withTrashed()->name('posts.restore');
+    Route::resource('posts', AdminPostController::class)->except(['show']);
 
-    Route::resource('categories', CategoryController::class)->except(['create', 'show']);
-    Route::resource('tags', TagController::class)->except(['create', 'show']);
+    Route::resource('categories', AdminCategoryController::class)->except(['create', 'show']);
+    Route::resource('tags', AdminTagController::class)->except(['create', 'show']);
 });

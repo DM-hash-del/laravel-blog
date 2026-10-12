@@ -238,11 +238,11 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 ## Blade and front end
 
 - Blade components with slots: a public layout, an admin layout, and small components such as post card, form field and status badge.
-- Public pages: home list with pagination, single post, category and tag archives. Admin pages: login, post list, editor, category and tag panels.
+- Public pages: home list with pagination (10 per page), single post, category and tag archives at `/`, `/posts/{slug}`, `/categories/{slug}` and `/tags/{slug}`. Admin pages: login, post list, editor, category and tag panels.
 - Markdown is rendered in exactly one component, using Laravel's built-in converter with raw HTML stripped and unsafe links blocked. It is styled by the Tailwind typography plugin, including its dark variant.
 - Unescaped Blade output (`{!! !!}`) is allowed only in that Markdown component.
 - The excerpt doubles as the page's meta description.
-- Search, filter and sort happen in the database query, never in Blade or JavaScript. They are driven by validated URL query parameters that pagination keeps. Search matches post titles and category names. Defaults: no search, no filter, newest first. One reusable piece of query logic serves the home page, the archives and the admin list.
+- Search, filter and sort happen in the database query, never in Blade or JavaScript. They are driven by validated URL query parameters that pagination keeps. Search matches post titles and category names. Defaults: no search, no filter, newest first. One reusable piece of query logic serves the home page, the archives and the admin list: `Post::published()` and `Post::listed()`, with parameters `search` and `sort=newest|oldest` validated by `PostListRequest`.
 - The first build uses reload-based AI results and plain checkbox toggles. Autosave, enhance without reload, a dark mode toggle, delete confirmations (including Move to trash) and a schedule date that appears only when Schedule is chosen, with a Confirm button, come in the later JavaScript pass.
 
 ## Design

@@ -6,6 +6,8 @@ use App\Enums\PostStatus;
 use Carbon\CarbonInterface;
 use Database\Factories\PostFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -65,6 +67,50 @@ class Post extends Model
     public function isSlugFrozen(): bool
     {
         return $this->getOriginal('first_published_at') !== null;
+    }
+
+    /**
+     * Limit the query to posts visitors may see: published and not trashed.
+     *
+     * Trashed posts are already excluded by soft deletes, and scheduled posts
+     * stay hidden until the scheduler publishes them.
+     *
+     * @param  Builder<Post>  $query
+     */
+    #[Scope]
+    protected function published(Builder $query): void
+    {
+        $query->where($query->qualifyColumn('status'), PostStatus::Published);
+    }
+
+    /**
+     * Apply the list search and sort shared by the home page, the archives and the admin list.
+     *
+     * Search matches the title or the category name, with LIKE wildcards in the
+     * term escaped (using "!", which MariaDB and SQLite both accept) so they match
+     * literally. Sort is by the given date column, newest first unless "oldest" is asked for.
+     *
+     * @param  Builder<Post>  $query
+     * @param  array{search: ?string, sort: string}  $filters
+     */
+    #[Scope]
+    protected function listed(Builder $query, array $filters, string $dateColumn): void
+    {
+        if (filled($filters['search'])) {
+            $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $filters['search']).'%';
+
+            $titleColumn = $query->qualifyColumn('title');
+
+            $query->where(function (Builder $query) use ($pattern, $titleColumn): void {
+                $query->whereRaw("{$titleColumn} like ? escape '!'", [$pattern])
+                    ->orWhereHas('category', fn (Builder $category) => $category->whereRaw("name like ? escape '!'", [$pattern]));
+            });
+        }
+
+        $direction = $filters['sort'] === 'oldest' ? 'asc' : 'desc';
+
+        $query->orderBy($query->qualifyColumn($dateColumn), $direction)
+            ->orderBy($query->qualifyColumn('id'), $direction);
     }
 
     /**
