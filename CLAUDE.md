@@ -171,7 +171,7 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - Tables, in migration order: users, categories, tags, posts, post_tag, ai_generations. One migration per table.
 - `users`: Laravel default plus an `is_admin` boolean.
 - `categories` and `tags`: `name` and a unique `slug`.
-- `posts`: `user_id`, `category_id` (required), `title`, unique `slug`, `excerpt` (nullable), `body` (long text, Markdown, nullable), `status`, `published_at` (nullable), soft deletes.
+- `posts`: `user_id`, `category_id` (required), `title`, unique `slug`, `excerpt` (nullable), `body` (long text, Markdown, nullable), `status`, `published_at` (nullable), `first_published_at` (nullable, records the first publish), soft deletes.
 - `post_tag`: pivot. One category per post, many tags per post.
 - `ai_generations`: `post_id` (nullable), `user_id`, `topic_input`, `field_states` (JSON), `request_payload` (JSON), `response_payload` (JSON), `model`, `status`, `error_message`, token counts, `duration_ms`. It logs every request, failures included.
 - `status` is a backed enum with three cases: Draft, Scheduled, Published.
@@ -193,7 +193,9 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - Thin controllers. Validation lives in one Form Request per form (login, post save, category, tag). No inline validation.
 - No business logic or API calls in controllers or views.
 - Public queries return only published posts. No public route may expose a draft, scheduled or trashed post.
-- The restore route explicitly includes trashed posts.
+- The restore route explicitly includes trashed posts. Deleted posts go to a Trash page with Restore. There is no permanent delete.
+- The post editor offers an existing category or a new one typed by name (not both), checked with the panel's name rules. Creating or updating a post returns to the post list; restoring opens the editor; a failed save stays on the editor with the input kept.
+- Editor buttons by status: draft or new gets Save draft, Publish and Schedule; scheduled gets Update schedule, Publish now and Unschedule; published gets Update and Unpublish (back to draft).
 - Save rules: a draft needs title and category. Publish and schedule need title, category, excerpt and body.
 - The editor uses buttons to set status: save draft, publish, schedule (date and time), delete. Every post can be edited whatever its status.
 - A category that any post uses, trashed posts included, cannot be deleted. Tags can be deleted freely. Deleting a post never deletes its category or tags.
@@ -223,12 +225,13 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 
 - A scheduled task runs every minute, with overlap prevented. It publishes Scheduled posts whose `published_at` has passed. Nothing else changes a post from scheduled to published automatically.
 - Dates are stored in UTC, then entered and displayed in Europe/London. Convert at the form boundary.
-- An admin can unschedule a post (back to draft) or edit a scheduled post.
+- An admin can unschedule a post (back to draft), unpublish a post (back to draft) or edit a scheduled post. The scheduler publishes through `Post::publish()` so `first_published_at` is set.
+- The display timezone is `config('app.display_timezone')`. Never write the zone name anywhere else.
 - The admin list marks scheduled posts past their time as overdue.
 
 ## Slugs
 
-- Generated from the title. The slug follows the title until the first publish, then freezes. After that, only a deliberate admin edit changes it.
+- Generated from the title. The slug follows the title until the first publish (`first_published_at`), then freezes, even after an unpublish. After that, only a deliberate admin edit in the slug field changes it. A title whose slug another post holds, trashed included, is rejected on the title.
 - Category and tag slugs are generated from the name at creation and never change. Renames change only the name. Names are unique ignoring case, and a new name whose slug is already taken is rejected on the name field.
 - Always build links with `route()` and named routes.
 
@@ -240,7 +243,7 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - Unescaped Blade output (`{!! !!}`) is allowed only in that Markdown component.
 - The excerpt doubles as the page's meta description.
 - Search, filter and sort happen in the database query, never in Blade or JavaScript. They are driven by validated URL query parameters that pagination keeps. Search matches post titles and category names. Defaults: no search, no filter, newest first. One reusable piece of query logic serves the home page, the archives and the admin list.
-- The first build uses reload-based AI results and plain checkbox toggles. Autosave, enhance without reload, a dark mode toggle and a delete confirmation come in the later JavaScript pass.
+- The first build uses reload-based AI results and plain checkbox toggles. Autosave, enhance without reload, a dark mode toggle, delete confirmations (including Move to trash) and a schedule date that appears only when Schedule is chosen, with a Confirm button, come in the later JavaScript pass.
 
 ## Design
 

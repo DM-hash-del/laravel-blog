@@ -32,6 +32,7 @@ class PostFactory extends Factory
             'body' => '## '.fake()->sentence()."\n\n".implode("\n\n", fake()->paragraphs(4)),
             'status' => PostStatus::Draft,
             'published_at' => null,
+            'first_published_at' => null,
         ];
     }
 
@@ -62,9 +63,14 @@ class PostFactory extends Factory
      */
     public function published(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'status' => PostStatus::Published,
-            'published_at' => fake()->dateTimeBetween('-1 year', '-1 hour'),
-        ]);
+        return $this->state(function (array $attributes) {
+            $publishedAt = fake()->dateTimeBetween('-1 year', '-1 hour');
+
+            return [
+                'status' => PostStatus::Published,
+                'published_at' => $publishedAt,
+                'first_published_at' => $publishedAt,
+            ];
+        });
     }
 }

@@ -69,6 +69,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Display Timezone
+    |--------------------------------------------------------------------------
+    |
+    | Dates are stored in UTC and converted to this timezone at the form
+    | boundary: admins enter and read dates and times in this zone.
+    |
+    */
+
+    'display_timezone' => 'Europe/London',
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

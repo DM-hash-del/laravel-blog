@@ -32,7 +32,7 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 | users | Laravel default; optional is_admin flag | Registration disabled; admin-only actions protected by a Gate |
 | categories | name, slug | Slug unique |
 | tags | name, slug | Slug unique |
-| posts | user_id, category_id (required), title, slug, excerpt (nullable), body (long text, Markdown, nullable until published), status, published_at (nullable), deleted_at | Soft deletes; status is draft, scheduled or published; slug unique |
+| posts | user_id, category_id (required), title, slug, excerpt (nullable), body (long text, Markdown, nullable until published), status, published_at (nullable), first_published_at (nullable, added in Stage 4), deleted_at | Soft deletes; status is draft, scheduled or published; slug unique. first_published_at records the first publish so the slug stays frozen after an unpublish |
 | post_tag | post_id, tag_id | Pivot for the many-to-many link between posts and tags |
 | ai_generations | post_id (nullable), user_id, topic_input, field_states (JSON), request_payload (JSON), response_payload (JSON), model, status, error_message, token counts, duration_ms | Logs every request, including failed ones; never stores the API key |
 
@@ -133,6 +133,11 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 | Category and tag slugs | Generated from the name at creation, then frozen. Renaming changes only the name, so archive URLs stay stable. Names are unique, ignoring case. A new name whose slug is still held by another row (for example one renamed away from that name) is rejected with a message on the name field |
 | Admin panels | The category and tag lists show 25 per page. The admin layout has a nav bar (Categories, Tags) and shows a success (status) or error message after each action |
 | Delete confirmation | None in the first build. Deferred to the JavaScript pass |
+| Post editor buttons | A draft or new post offers Save draft, Publish and Schedule. A scheduled post offers Update schedule, Publish now and Unschedule. A published post offers Update and Unpublish. Unpublishing returns a post to draft and takes it off the site. Move to trash sits below the form. Updating a published post keeps its original publish date |
+| Post slugs | A new or draft post's slug is generated from the title. A title whose slug is held by another post, trashed posts included, is rejected with a message on the title. Once a post has been published, the editor shows an editable slug field instead, validated as a unique, lowercase, hyphenated slug |
+| Post editor category | The editor offers a list of existing categories and a field to create a new one by name, but not both at once. A new category follows the same name rules as the panel and is created only when the post saves |
+| After saving | Creating or updating a post from the editor returns the admin to the post list. Restoring a post opens the editor. A failed save stays on the editor with the input kept |
+| Post trash | Deleting a post moves it to a Trash page, which lists trashed posts with a Restore button. A trashed post cannot be edited until restored. There is no permanent delete |
 | Post editor | One form for writing and AI help, with no separate generation page and no separate brief input. Fields: title, excerpt, body (Markdown), category, tags, each with an enhance toggle |
 | Field states | Empty means generate. Toggled means enhance. Toggled and empty means generate. Non-empty and not toggled means untouched, sent to the AI as read-only context. Toggles default on for empty fields and off for filled ones, and the admin can flip either. Every field is always sent in one standard payload with its state |
 | AI action validation | Generate or enhance is blocked, and no API request is sent, unless at least one field has enough content to work from (examples: a title of N characters, 3 or more tags, a category, or a body of 200 characters after trimming). Exact minimums are set at build time |
@@ -193,10 +198,11 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 | Mechanism | The Laravel scheduler runs a task every minute. Posts with status scheduled whose published_at has passed are set to published. Overlapping runs are prevented |
 | Where it runs | Locally through the scheduler worker command. On cPanel through one cron entry every minute, using the correct PHP command-line path (checked in the hosting step) |
 | Time zones | Stored in UTC, entered and shown in Europe/London |
-| Changing your mind | An admin can unschedule a post (back to draft) and edit a scheduled post |
+| Changing your mind | An admin can unschedule a post (back to draft), unpublish a published post (back to draft) and edit a scheduled post |
 | Editing rule | Every post can be edited and updated whatever its status; no state locks a post |
 | Overdue | The admin list marks scheduled posts that are past their time as overdue, which shows if cron has stopped |
-| Slug | A post keeps its slug once published unless the admin changes it deliberately, so editing a title never breaks a link |
+| Slug | A post keeps its slug once published unless the admin changes it deliberately, so editing a title never breaks a link. The freeze is recorded by first_published_at, so it survives an unpublish. The scheduler must publish through the same Post::publish() method as the editor so first_published_at is set |
+| Display timezone | Europe/London is set once in config/app.php as display_timezone and read from there by the form and views |
 
 **Should be there**
 
@@ -417,7 +423,7 @@ Each stage follows the same loop: plan mode, approve the plan, build, run the te
 | 5. Public site | Layouts, home list, post page with the Markdown component, archives, search, filter and sort, dark mode | Mobile-first. Search, filter and sort is a good cloud task |
 | 6. AI integration | The service class, logging, the enhance toggles in the editor, the throttle | Tests with the HTTP call faked |
 | 7. Scheduler | The scheduled publishing task and the overdue marker | Tests that move the clock |
-| 8. JavaScript pass | Autosave, enhance without reload, dark mode toggle, delete confirmation | Good cloud task, checked manually in the browser |
+| 8. JavaScript pass | Autosave, enhance without reload, dark mode toggle, delete confirmation (including a confirmation dialog for Move to trash on posts), the post editor's schedule date shown only once Schedule is chosen and submitted with a Confirm button | Good cloud task, checked manually in the browser |
 | 9. Deploy | Build, upload, the protection test, cron jobs, migrate, seed, security pass | Follows the hosting step |
 
 **Should be there**

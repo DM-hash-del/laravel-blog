@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Category;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +48,24 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Build a complete post editor submission, overridable per test.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function postPayload(array $overrides = []): array
+{
+    return [
+        'action' => 'draft',
+        'title' => 'A Hand Written Post',
+        'category_id' => array_key_exists('category_id', $overrides) ? null : Category::factory()->create()->id,
+        'tags' => [],
+        'excerpt' => 'A short summary of the post.',
+        'body' => "## Heading\n\nSome Markdown body text.",
+        'published_at' => null,
+        ...$overrides,
+    ];
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\TagController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +47,10 @@ Route::post('logout', [LoginController::class, 'destroy'])->middleware('auth')->
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'can:access-admin'])->group(function () {
     Route::view('/', 'admin.dashboard')->name('dashboard');
+
+    Route::get('posts/trash', [PostController::class, 'trash'])->name('posts.trash');
+    Route::patch('posts/{post}/restore', [PostController::class, 'restore'])->withTrashed()->name('posts.restore');
+    Route::resource('posts', PostController::class)->except(['show']);
 
     Route::resource('categories', CategoryController::class)->except(['create', 'show']);
     Route::resource('tags', TagController::class)->except(['create', 'show']);

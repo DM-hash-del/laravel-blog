@@ -1,0 +1,106 @@
+@php
+    $status = $post->exists ? $post->status : \App\Enums\PostStatus::Draft;
+    $displayTimezone = config('app.display_timezone');
+    $selectedTagIds = array_map('intval', old('tags', $post->tags->pluck('id')->all()));
+    $scheduledFor = $status === \App\Enums\PostStatus::Scheduled
+        ? $post->published_at->timezone($displayTimezone)->format('Y-m-d\TH:i')
+        : null;
+    $primaryButton = 'min-h-11 rounded-md bg-accent-dark px-4 font-medium text-white hover:bg-accent-dark/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 dark:bg-accent dark:text-gray-950 dark:hover:bg-accent/90 dark:focus-visible:ring-offset-gray-950';
+    $secondaryButton = 'min-h-11 rounded-md border border-gray-300 px-4 font-medium text-gray-800 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800';
+@endphp
+
+<form method="POST" action="{{ $action }}" class="flex flex-col gap-6">
+    @csrf
+    @if ($post->exists)
+        @method('PUT')
+    @endif
+
+    <x-form-field name="title" label="Title" :value="$post->title" required maxlength="255" />
+
+    @if ($post->isSlugFrozen())
+        <x-form-field name="slug" label="Slug" :value="$post->slug" required maxlength="255" />
+    @else
+        <p class="-mt-3 text-sm break-all text-gray-600 dark:text-gray-400">
+            URL slug: generated from the title until the post is first published{{ $post->exists ? ' (currently '.$post->slug.')' : '' }}.
+        </p>
+    @endif
+
+    <div class="flex flex-col gap-1.5">
+        <label for="category_id" class="text-sm font-medium">Category</label>
+        <select id="category_id" name="category_id"
+            @error('category_id') aria-invalid="true" aria-describedby="category_id-error" @enderror
+            class="min-h-11 rounded-md border border-gray-300 bg-white px-3 text-base focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent dark:border-gray-700 dark:bg-gray-900">
+            <option value="">Choose a category</option>
+            @foreach ($categories as $category)
+                <option value="{{ $category->id }}" @selected((int) old('category_id', $post->category_id) === $category->id)>{{ $category->name }}</option>
+            @endforeach
+        </select>
+        @error('category_id')
+            <p id="category_id-error" class="text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <x-form-field name="new_category" label="Or create a new category" maxlength="255"
+        hint="Leave the list on ‘Choose a category’ and type a name to create one." />
+
+    <fieldset class="flex flex-col gap-1.5">
+        <legend class="text-sm font-medium">Tags</legend>
+        @if ($tags->isEmpty())
+            <p class="text-sm text-gray-600 dark:text-gray-400">No tags yet. Add them in the Tags panel.</p>
+        @else
+            <div class="mt-1.5 flex flex-wrap gap-2">
+                @foreach ($tags as $tag)
+                    <label class="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 text-sm has-checked:border-accent has-checked:bg-accent/10 dark:border-gray-700 dark:has-checked:bg-accent/15">
+                        <input type="checkbox" name="tags[]" value="{{ $tag->id }}" @checked(in_array($tag->id, $selectedTagIds, true))
+                            class="size-4 accent-accent-dark dark:accent-accent">
+                        {{ $tag->name }}
+                    </label>
+                @endforeach
+            </div>
+        @endif
+        @error('tags')
+            <p class="text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
+        @enderror
+        @error('tags.*')
+            <p class="text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </fieldset>
+
+    <x-form-textarea name="excerpt" label="Excerpt" :value="$post->excerpt" rows="3"
+        hint="A short summary, also used as the page's search description. Needed to publish or schedule." />
+
+    <x-form-textarea name="body" label="Body" :value="$post->body" rows="16" class="font-mono text-sm"
+        hint="Written in Markdown. Needed to publish or schedule." />
+
+    <div class="flex flex-col gap-1.5">
+        <label for="published_at" class="text-sm font-medium">Schedule for</label>
+        <p id="published_at-hint" class="text-sm text-gray-600 dark:text-gray-400">UK time ({{ $displayTimezone }}). Used only by the schedule button.</p>
+        <input id="published_at" name="published_at" type="datetime-local" value="{{ old('published_at', $scheduledFor) }}"
+            @error('published_at') aria-invalid="true" aria-describedby="published_at-error" @enderror
+            class="min-h-11 rounded-md border border-gray-300 bg-white px-3 text-base focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent sm:max-w-xs dark:border-gray-700 dark:bg-gray-900">
+        @error('published_at')
+            <p id="published_at-error" class="text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div class="flex flex-col gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:flex-wrap dark:border-gray-800">
+        @switch($status)
+            @case(\App\Enums\PostStatus::Published)
+                <button type="submit" name="action" value="publish" class="{{ $primaryButton }}">Update</button>
+                <button type="submit" name="action" value="draft" class="{{ $secondaryButton }}">Unpublish</button>
+                @break
+            @case(\App\Enums\PostStatus::Scheduled)
+                <button type="submit" name="action" value="schedule" class="{{ $primaryButton }}">Update schedule</button>
+                <button type="submit" name="action" value="publish" class="{{ $secondaryButton }}">Publish now</button>
+                <button type="submit" name="action" value="draft" class="{{ $secondaryButton }}">Unschedule</button>
+                @break
+            @default
+                <button type="submit" name="action" value="draft" class="{{ $secondaryButton }}">Save draft</button>
+                <button type="submit" name="action" value="publish" class="{{ $primaryButton }}">Publish</button>
+                <button type="submit" name="action" value="schedule" class="{{ $secondaryButton }}">Schedule</button>
+        @endswitch
+    </div>
+    @error('action')
+        <p class="text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
+    @enderror
+</form>

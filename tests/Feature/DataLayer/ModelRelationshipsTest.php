@@ -106,10 +106,11 @@ test('soft deleting a post keeps its tags so a restore brings them back', functi
 });
 
 test('a trashed post keeps its slug reserved', function () {
-    $post = Post::factory()->create(['slug' => 'reserved-slug']);
+    $post = Post::factory()->create(['title' => 'Reserved Slug']);
     $post->delete();
 
-    expect(fn () => Post::factory()->create(['slug' => 'reserved-slug']))
+    expect($post->slug)->toBe('reserved-slug')
+        ->and(fn () => Post::factory()->create(['title' => 'Reserved Slug']))
         ->toThrow(QueryException::class);
 });
 

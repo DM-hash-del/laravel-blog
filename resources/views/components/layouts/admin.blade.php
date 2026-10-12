@@ -27,7 +27,7 @@
 
             @can('access-admin')
                 <nav aria-label="Admin" class="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4 pb-2">
-                    @foreach (['admin.categories.*' => 'Categories', 'admin.tags.*' => 'Tags'] as $routePattern => $navLabel)
+                    @foreach (['admin.posts.*' => 'Posts', 'admin.categories.*' => 'Categories', 'admin.tags.*' => 'Tags'] as $routePattern => $navLabel)
                         @php($isCurrent = request()->routeIs($routePattern))
                         <a href="{{ route(str_replace('*', 'index', $routePattern)) }}" @if ($isCurrent) aria-current="page" @endif
                             @class([
