@@ -130,6 +130,9 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 | Publish workflow | Post status is set by buttons on the editor: save draft, publish, schedule (date and time), delete. Autosave waits until the app is functionally working |
 | Category rule | Every post must have a category. A category in use cannot be deleted: reassign its posts or create a new category first. Trashed posts still block deleting their category, which is accepted |
 | Categories and tags admin | Dedicated panel with list, create, edit and delete, showing how many posts use each. Tags can be added and deleted freely, and unused tags can be removed from the panel. Deleting a post never deletes its category or tags |
+| Category and tag slugs | Generated from the name at creation, then frozen. Renaming changes only the name, so archive URLs stay stable. Names are unique, ignoring case. A new name whose slug is still held by another row (for example one renamed away from that name) is rejected with a message on the name field |
+| Admin panels | The category and tag lists show 25 per page. The admin layout has a nav bar (Categories, Tags) and shows a success (status) or error message after each action |
+| Delete confirmation | None in the first build. Deferred to the JavaScript pass |
 | Post editor | One form for writing and AI help, with no separate generation page and no separate brief input. Fields: title, excerpt, body (Markdown), category, tags, each with an enhance toggle |
 | Field states | Empty means generate. Toggled means enhance. Toggled and empty means generate. Non-empty and not toggled means untouched, sent to the AI as read-only context. Toggles default on for empty fields and off for filled ones, and the admin can flip either. Every field is always sent in one standard payload with its state |
 | AI action validation | Generate or enhance is blocked, and no API request is sent, unless at least one field has enough content to work from (examples: a title of N characters, 3 or more tags, a category, or a body of 200 characters after trimming). Exact minimums are set at build time |
@@ -414,7 +417,7 @@ Each stage follows the same loop: plan mode, approve the plan, build, run the te
 | 5. Public site | Layouts, home list, post page with the Markdown component, archives, search, filter and sort, dark mode | Mobile-first. Search, filter and sort is a good cloud task |
 | 6. AI integration | The service class, logging, the enhance toggles in the editor, the throttle | Tests with the HTTP call faked |
 | 7. Scheduler | The scheduled publishing task and the overdue marker | Tests that move the clock |
-| 8. JavaScript pass | Autosave, enhance without reload, dark mode toggle | Good cloud task, checked manually in the browser |
+| 8. JavaScript pass | Autosave, enhance without reload, dark mode toggle, delete confirmation | Good cloud task, checked manually in the browser |
 | 9. Deploy | Build, upload, the protection test, cron jobs, migrate, seed, security pass | Follows the hosting step |
 
 **Should be there**

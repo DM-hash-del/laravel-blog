@@ -23,4 +23,12 @@ class Category extends Model
     {
         return $this->hasMany(Post::class);
     }
+
+    /**
+     * Determine whether any post uses the category, trashed posts included.
+     */
+    public function isInUse(): bool
+    {
+        return $this->posts()->withTrashed()->exists();
+    }
 }

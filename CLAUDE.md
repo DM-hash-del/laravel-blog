@@ -197,7 +197,7 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - Save rules: a draft needs title and category. Publish and schedule need title, category, excerpt and body.
 - The editor uses buttons to set status: save draft, publish, schedule (date and time), delete. Every post can be edited whatever its status.
 - A category that any post uses, trashed posts included, cannot be deleted. Tags can be deleted freely. Deleting a post never deletes its category or tags.
-- The categories and tags panel lists, creates, edits and deletes them, and shows how many posts use each.
+- The categories and tags panel lists (25 per page), creates, edits and deletes them, and shows how many posts use each.
 
 ## AI integration
 
@@ -229,6 +229,7 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 ## Slugs
 
 - Generated from the title. The slug follows the title until the first publish, then freezes. After that, only a deliberate admin edit changes it.
+- Category and tag slugs are generated from the name at creation and never change. Renames change only the name. Names are unique ignoring case, and a new name whose slug is already taken is rejected on the name field.
 - Always build links with `route()` and named routes.
 
 ## Blade and front end
@@ -239,7 +240,7 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - Unescaped Blade output (`{!! !!}`) is allowed only in that Markdown component.
 - The excerpt doubles as the page's meta description.
 - Search, filter and sort happen in the database query, never in Blade or JavaScript. They are driven by validated URL query parameters that pagination keeps. Search matches post titles and category names. Defaults: no search, no filter, newest first. One reusable piece of query logic serves the home page, the archives and the admin list.
-- The first build uses reload-based AI results and plain checkbox toggles. Autosave, enhance without reload and a dark mode toggle come in the later JavaScript pass.
+- The first build uses reload-based AI results and plain checkbox toggles. Autosave, enhance without reload, a dark mode toggle and a delete confirmation come in the later JavaScript pass.
 
 ## Design
 
