@@ -27,6 +27,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::define('access-admin', fn (User $user): bool => $user->is_admin);
 
+        RateLimiter::for('post-preview', fn (Request $request): Limit => Limit::perMinute(120)
+            ->by($request->user()?->id ?: $request->ip()));
+
         RateLimiter::for('ai-assist', fn (Request $request): Limit => Limit::perMinute(config('services.openai.requests_per_minute'))
             ->by($request->user()?->id ?: $request->ip())
             ->response(fn (Request $request, array $headers): RedirectResponse => back()

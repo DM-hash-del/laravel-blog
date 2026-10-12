@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\PostAssistController;
 use App\Http\Controllers\Admin\PostController as AdminPostController;
+use App\Http\Controllers\Admin\PostPreviewController;
 use App\Http\Controllers\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CategoryArchiveController;
@@ -55,6 +56,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'can:access-admin'])
 
     Route::get('posts/trash', [AdminPostController::class, 'trash'])->name('posts.trash');
     Route::match(['post', 'put'], 'posts/assist/{post?}', PostAssistController::class)->middleware('throttle:ai-assist')->name('posts.assist');
+    Route::post('posts/preview', PostPreviewController::class)->middleware('throttle:post-preview')->name('posts.preview');
     Route::patch('posts/{post}/restore', [AdminPostController::class, 'restore'])->withTrashed()->name('posts.restore');
     Route::resource('posts', AdminPostController::class)->except(['show']);
 
