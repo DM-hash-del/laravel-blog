@@ -91,3 +91,24 @@ test('an unknown status redirects to the clean admin list with an error', functi
         ->assertRedirect(route('admin.posts.index'))
         ->assertSessionHasErrors('status');
 });
+
+test('the admin list marks scheduled posts past their time as overdue', function () {
+    $this->travelTo('2026-07-01 12:00:00');
+    Post::factory()->scheduled()->create(['title' => 'Missed Its Slot', 'published_at' => '2026-07-01 09:00:00']);
+    Post::factory()->scheduled()->create(['title' => 'Still To Come', 'published_at' => '2026-07-02 09:00:00']);
+
+    $response = $this->actingAs($this->admin)->get(route('admin.posts.index'))->assertOk();
+
+    expect(substr_count($response->getContent(), 'Overdue'))->toBe(1);
+    $response->assertSeeInOrder(['Missed Its Slot', 'Overdue']);
+});
+
+test('the editor explains an overdue post', function () {
+    $this->travelTo('2026-07-01 12:00:00');
+    $post = Post::factory()->scheduled()->create(['published_at' => '2026-07-01 09:00:00']);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.posts.edit', $post))
+        ->assertOk()
+        ->assertSee('Check that the scheduler (cron) is running.');
+});

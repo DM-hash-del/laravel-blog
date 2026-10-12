@@ -314,3 +314,25 @@ test('too many or unusable new tags are rejected and nothing is created', functi
     'no letters or numbers' => ['!!!'],
     'over 50 characters' => [str_repeat('x', 51)],
 ]);
+
+test('publishing an overdue scheduled post keeps its scheduled time', function () {
+    $this->travelTo(Carbon::parse('2026-07-01 12:00:00', 'UTC'));
+    $post = Post::factory()->scheduled()->create(['published_at' => '2026-07-01 09:00:00']);
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.posts.update', $post), postPayload(['action' => 'publish', 'title' => $post->title]))
+        ->assertSessionHasNoErrors();
+
+    expect($post->fresh()->published_at->toDateTimeString())->toBe('2026-07-01 09:00:00');
+});
+
+test('publishing a scheduled post early takes the current time', function () {
+    $this->travelTo(Carbon::parse('2026-07-01 12:00:00', 'UTC'));
+    $post = Post::factory()->scheduled()->create(['published_at' => '2026-07-05 09:00:00']);
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.posts.update', $post), postPayload(['action' => 'publish', 'title' => $post->title]))
+        ->assertSessionHasNoErrors();
+
+    expect($post->fresh()->published_at->toDateTimeString())->toBe('2026-07-01 12:00:00');
+});

@@ -26,6 +26,7 @@
                         <p class="font-medium break-words">{{ $post->title }}</p>
                         <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
                             <x-status-badge :status="$post->status" />
+                            <x-overdue-badge :post="$post" />
                             <span>{{ $post->category->name }}</span>
                             @if ($post->published_at)
                                 <span>

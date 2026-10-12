@@ -128,16 +128,31 @@ class Post extends Model
     }
 
     /**
-     * Publish the post now, keeping the original date if it is already published.
+     * Publish the post, keeping its date when that date has already arrived.
+     *
+     * A published post keeps its original date, and a scheduled post that is due
+     * (or overdue because the scheduler ran late) keeps its scheduled time. A draft,
+     * or a scheduled post published early, takes the current time.
      */
     public function publish(): void
     {
-        if ($this->status !== PostStatus::Published || $this->published_at === null) {
+        if ($this->published_at === null || $this->published_at->isFuture()) {
             $this->published_at = Carbon::now();
         }
 
         $this->status = PostStatus::Published;
         $this->first_published_at ??= $this->published_at;
+    }
+
+    /**
+     * Determine whether the post is scheduled for a time that has already passed,
+     * which means the scheduler has not run.
+     */
+    public function isOverdue(): bool
+    {
+        return $this->status === PostStatus::Scheduled
+            && $this->published_at !== null
+            && $this->published_at->isPast();
     }
 
     /**

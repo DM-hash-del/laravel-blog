@@ -7,7 +7,14 @@
         <div class="mt-2 mb-6 flex flex-wrap items-center gap-3">
             <h1 class="text-2xl font-semibold">Edit post</h1>
             <x-status-badge :status="$post->status" />
+            <x-overdue-badge :post="$post" />
         </div>
+
+        @if ($post->isOverdue())
+            <p role="status" class="mb-6 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                This post was due to publish at {{ $post->published_at->timezone(config('app.display_timezone'))->format('j M Y, H:i') }} but hasn't yet. Check that the scheduler (cron) is running.
+            </p>
+        @endif
 
         @include('admin.posts._form', ['action' => route('admin.posts.update', $post)])
 

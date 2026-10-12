@@ -232,7 +232,8 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - Dates are stored in UTC, then entered and displayed in Europe/London. Convert at the form boundary.
 - An admin can unschedule a post (back to draft), unpublish a post (back to draft) or edit a scheduled post. The scheduler publishes through `Post::publish()` so `first_published_at` is set.
 - The display timezone is `config('app.display_timezone')`. Never write the zone name anywhere else.
-- The admin list marks scheduled posts past their time as overdue.
+- The admin list marks scheduled posts past their time as overdue (a red badge, plus a note in the editor).
+- The task is `posts:publish-scheduled`, scheduled in `routes/console.php` with `withoutOverlapping(5)` so a stuck lock clears in 5 minutes. A due or overdue post keeps its scheduled time as its publish date. Locally it runs via `composer run dev` or `php artisan schedule:work`.
 
 ## Slugs
 

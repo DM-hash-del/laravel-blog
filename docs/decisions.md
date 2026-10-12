@@ -203,12 +203,14 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 
 | Decision | Detail |
 | --- | --- |
-| Mechanism | The Laravel scheduler runs a task every minute. Posts with status scheduled whose published_at has passed are set to published. Overlapping runs are prevented |
+| Mechanism | The Laravel scheduler runs a task every minute. Posts with status scheduled whose published_at has passed are set to published. Overlapping runs are prevented. The task is the posts:publish-scheduled command (registered in routes/console.php), which publishes each due post through Post::publish(). Its overlap lock expires after 5 minutes (not Laravel's 24-hour default), so a run killed partway delays publishing by minutes, not a day |
 | Where it runs | Locally through the scheduler worker command. On cPanel through one cron entry every minute, using the correct PHP command-line path (checked in the hosting step) |
 | Time zones | Stored in UTC, entered and shown in Europe/London |
 | Changing your mind | An admin can unschedule a post (back to draft), unpublish a published post (back to draft) and edit a scheduled post |
 | Editing rule | Every post can be edited and updated whatever its status; no state locks a post |
-| Overdue | The admin list marks scheduled posts that are past their time as overdue, which shows if cron has stopped |
+| Overdue | The admin list marks scheduled posts that are past their time as overdue, which shows if cron has stopped. It shows a red Overdue badge in the list and on the editor, where a note asks the admin to check the scheduler |
+| Publish date | Publishing keeps a post's publish date when that date has already arrived: a published post keeps its original date, and a due or overdue scheduled post keeps its scheduled time, even if cron ran late. A draft, or a scheduled post published early, takes the current time |
+| Running locally | composer run dev now runs php artisan schedule:work alongside the server; on its own, run php artisan schedule:work. The cPanel cron entry belongs to the deploy stage |
 | Slug | A post keeps its slug once published unless the admin changes it deliberately, so editing a title never breaks a link. The freeze is recorded by first_published_at, so it survives an unpublish. The scheduler must publish through the same Post::publish() method as the editor so first_published_at is set |
 | Display timezone | Europe/London is set once in config/app.php as display_timezone and read from there by the form and views |
 
