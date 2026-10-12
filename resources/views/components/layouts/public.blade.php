@@ -9,14 +9,16 @@
         @if ($description)
             <meta name="description" content="{{ $description }}">
         @endif
+        <x-theme-script />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="flex min-h-screen flex-col bg-white font-sans text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
         <header class="border-b border-gray-200 dark:border-gray-800">
-            <div class="mx-auto flex max-w-2xl items-center px-4 py-3">
+            <div class="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-2 px-4 py-3">
                 <a href="{{ route('home') }}" class="flex min-h-11 items-center text-lg font-semibold text-gray-900 hover:text-accent-dark dark:text-gray-100 dark:hover:text-accent">
                     {{ config('app.name') }}
                 </a>
+                <x-theme-toggle />
             </div>
         </header>
 

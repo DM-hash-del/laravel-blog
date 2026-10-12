@@ -1,6 +1,22 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
+/*
+ * dark: follows the system setting unless the theme toggle has stored a choice
+ * as data-theme on <html> (set before first paint by the theme script).
+ */
+@custom-variant dark {
+    &:where(html[data-theme="dark"], html[data-theme="dark"] *) {
+        @slot;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        &:where(html:not([data-theme="light"]), html:not([data-theme="light"]) *) {
+            @slot;
+        }
+    }
+}
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
@@ -8,4 +24,16 @@
     --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --color-accent: #4a95ba;
     --color-accent-dark: #2f6f8f;
+}
+
+:root {
+    color-scheme: light dark;
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
 }

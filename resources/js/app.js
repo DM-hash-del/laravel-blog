@@ -7,6 +7,7 @@
  */
 const modules = {
     '[data-confirm]': () => import('./modules/confirm.js'),
+    '[data-theme-toggle]': () => import('./modules/theme.js'),
 };
 
 for (const [selector, load] of Object.entries(modules)) {

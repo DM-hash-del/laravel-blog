@@ -243,7 +243,7 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 
 **Notes**
 
-- Dark mode is in the first build as part of the front-end design spec, which has its own step. Still to decide: follow the system setting only, or add a manual toggle.
+- Dark mode is in the first build as part of the front-end design spec, which has its own step. Resolved: it follows the system setting by default, with a System / Light / Dark toggle added in 8B.
 - RSS feed is a later extra.
 - Tailwind's typography styling needs its dark variant so Markdown text stays readable in dark mode.
 
@@ -268,7 +268,7 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 | Style | Clean and text-focused, with a narrow reading column for posts |
 | Accent colour | #4a95ba |
 | Fonts | System fonts, with no external font requests |
-| Dark mode | Follows the system setting in the first build. A manual toggle is added in the JavaScript pass |
+| Dark mode | Follows the system setting by default. Built in 8B: a System / Light / Dark toggle in the public and admin headers, System by default, stores the choice in localStorage and sets data-theme on <html>. A custom dark variant in app.css applies data-theme and otherwise falls back to the system setting, and a small head script applies the stored choice before first paint so there is no flash. Without JavaScript the toggle is hidden and the site follows the system |
 | Accessibility | The accent has roughly 3.3 to 1 contrast against white, below the 4.5 to 1 needed for body-size text. In light mode use the accent for backgrounds, borders and large elements, and a darker shade of it for link text. In dark mode the accent works as text. The accent may be nudged slightly to a close value that passes contrast checks, and the final shades are verified with a contrast checker |
 
 **Should be there**
@@ -453,7 +453,7 @@ Ground rules for every sub-stage:
 | Sub-stage | What gets built | Depends on | Why in this order |
 | --- | --- | --- | --- |
 | 8A. Foundations and delete confirmations | The app.js entry that loads modules by data- hook; a shared dialog-based confirm; confirmation before deleting a category or tag and before Move to trash on a post | Nothing | Small and self-contained; sets the module, data-hook and dialog patterns every later sub-stage reuses. Pattern: resources/js/app.js maps a data- hook selector to a dynamic import of resources/js/modules/<name>.js, which exports init(); a module loads only on pages with its hook, as its own chunk |
-| 8B. Dark mode toggle | Tailwind v4 class-based dark variant with the system setting as the default; a no-flash script in the head; a toggle in both layouts, remembered in localStorage | 8A | Changes how every dark: class applies, so later sub-stages are checked in both modes through the toggle |
+| 8B. Dark mode toggle | Tailwind v4 class-based dark variant with the system setting as the default; a no-flash script in the head; a toggle in both layouts, remembered in localStorage | 8A | Changes how every dark: class applies, so later sub-stages are checked in both modes through the toggle. Decided: three options (System, Light, Dark), System by default |
 | 8C. Schedule reveal and Confirm | The schedule date stays hidden until Schedule is pressed, then a Confirm and Cancel pair submits or backs out | 8A | Editor-only with no server change; settles the button area before the AI controls change |
 | 8D. Live Markdown preview | A throttled admin-only preview endpoint that renders through the shared Markdown component; the editor preview updates as the admin types (debounced); show and hide stays CSS-only | 8A | First fetch() sub-stage: builds the shared fetch helper (CSRF header, JSON errors, aborting stale requests) reused by 8E to 8G |
 | 8E. Enhance without reload and page lock | The assist endpoint also answers JSON (the redirect stays for no-JS); suggestions fill the fields, category and tags in place and refresh the preview; the form goes inert behind a Generating… overlay with a Cancel button that aborts the request | 8D | Needs the fetch helper and the live preview; the server-side single-request lock stays as the backstop |
@@ -462,7 +462,7 @@ Ground rules for every sub-stage:
 
 Questions to settle when each sub-stage is planned:
 
-- 8B: a three-way toggle (System, Light, Dark) or two-way.
+- 8B (settled): three options, System, Light and Dark, with System as the default.
 - 8G: whether autosave covers only drafts and new posts (saving a published post while typing would change the live page), whether the first autosave of a new post creates the draft and moves to its edit page, and what happens while the title is too short to save.
 
 **Should be there**

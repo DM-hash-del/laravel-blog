@@ -259,7 +259,7 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - System fonts only. No external font or stylesheet requests.
 - The accent is `#4a95ba`. Define it and a darker shade once as Tailwind theme tokens and use them by name, never as repeated hex values.
 - In light mode, use the accent for backgrounds, borders and large elements, and the darker shade for link text. Never put light-accent link text on white. In dark mode, the accent works as text. Check final shades with a contrast checker.
-- Dark mode follows the system setting. Every colour needs a dark variant.
+- Dark mode follows the system setting by default; a System / Light / Dark toggle (8B) overrides it via `data-theme` on `<html>`, applied before first paint by `<x-theme-script>`. Every colour needs a dark variant.
 - Tap targets must be touch-friendly, with no horizontal scroll at phone width.
 
 ## Testing
