@@ -1,7 +1,7 @@
-@props(['filters', 'action'])
+@props(['filters', 'action', 'statuses' => null])
 
 @php
-    $isFiltered = filled($filters['search']) || $filters['sort'] !== 'newest';
+    $isFiltered = filled($filters['search']) || $filters['sort'] !== 'newest' || ($filters['status'] ?? null) !== null;
 @endphp
 
 <form method="GET" action="{{ $action }}" role="search" class="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -10,6 +10,19 @@
         <input id="search" name="search" type="search" value="{{ $filters['search'] }}" maxlength="100"
             class="min-h-11 rounded-md border border-gray-300 bg-white px-3 text-base focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent dark:border-gray-700 dark:bg-gray-900">
     </div>
+
+    @if ($statuses)
+        <div class="flex flex-col gap-1.5">
+            <label for="status" class="text-sm font-medium">Status</label>
+            <select id="status" name="status"
+                class="min-h-11 rounded-md border border-gray-300 bg-white px-3 text-base focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent dark:border-gray-700 dark:bg-gray-900">
+                <option value="">All statuses</option>
+                @foreach ($statuses as $status)
+                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? null) === $status)>{{ $status->label() }}</option>
+                @endforeach
+            </select>
+        </div>
+    @endif
 
     <div class="flex flex-col gap-1.5">
         <label for="sort" class="text-sm font-medium">Sort</label>
@@ -32,8 +45,8 @@
     </div>
 </form>
 
-@if ($errors->has('search') || $errors->has('sort'))
+@if ($errors->hasAny(['search', 'sort', 'status']))
     <p role="alert" class="mt-3 text-sm text-red-700 dark:text-red-400">
-        {{ $errors->first('search') ?: $errors->first('sort') }} The list has been reset.
+        {{ $errors->first('search') ?: ($errors->first('sort') ?: $errors->first('status')) }} The list has been reset.
     </p>
 @endif

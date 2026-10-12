@@ -50,7 +50,7 @@ Route::post('logout', [LoginController::class, 'destroy'])->middleware('auth')->
 */
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'can:access-admin'])->group(function () {
-    Route::view('/', 'admin.dashboard')->name('dashboard');
+    Route::get('/', fn () => to_route('admin.posts.index'))->name('dashboard');
 
     Route::get('posts/trash', [AdminPostController::class, 'trash'])->name('posts.trash');
     Route::patch('posts/{post}/restore', [AdminPostController::class, 'restore'])->withTrashed()->name('posts.restore');

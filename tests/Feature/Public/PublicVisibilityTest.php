@@ -47,3 +47,10 @@ test('a published post can be read', function () {
 test('draft, scheduled and trashed posts are not found', function (string $property) {
     $this->get(route('posts.show', $this->{$property}->slug))->assertNotFound();
 })->with(['draft', 'scheduled', 'trashed']);
+
+test('public lists ignore a status parameter', function () {
+    $this->get(route('home', ['status' => 'draft']))
+        ->assertOk()
+        ->assertSee('Visible Published Post')
+        ->assertDontSee('Hidden Draft Post');
+});

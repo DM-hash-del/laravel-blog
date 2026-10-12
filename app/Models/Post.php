@@ -86,16 +86,21 @@ class Post extends Model
     /**
      * Apply the list search and sort shared by the home page, the archives and the admin list.
      *
+     * An optional status narrows the list; only the admin list passes one.
      * Search matches the title or the category name, with LIKE wildcards in the
      * term escaped (using "!", which MariaDB and SQLite both accept) so they match
      * literally. Sort is by the given date column, newest first unless "oldest" is asked for.
      *
      * @param  Builder<Post>  $query
-     * @param  array{search: ?string, sort: string}  $filters
+     * @param  array{search: ?string, sort: string, status?: ?PostStatus}  $filters
      */
     #[Scope]
     protected function listed(Builder $query, array $filters, string $dateColumn): void
     {
+        if (($filters['status'] ?? null) !== null) {
+            $query->where($query->qualifyColumn('status'), $filters['status']);
+        }
+
         if (filled($filters['search'])) {
             $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $filters['search']).'%';
 

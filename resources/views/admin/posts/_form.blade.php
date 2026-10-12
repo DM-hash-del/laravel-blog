@@ -69,8 +69,28 @@
     <x-form-textarea name="excerpt" label="Excerpt" :value="$post->excerpt" rows="3"
         hint="A short summary, also used as the page's search description. Needed to publish or schedule." />
 
-    <x-form-textarea name="body" label="Body" :value="$post->body" rows="16" class="font-mono text-sm"
-        hint="Written in Markdown. Needed to publish or schedule." />
+    <div class="group flex flex-col gap-3">
+        <x-form-textarea name="body" label="Body" :value="$post->body" rows="16" class="font-mono text-sm"
+            hint="Written in Markdown. Needed to publish or schedule." />
+
+        {{-- Unnamed, so it is never submitted. Hides the preview with CSS alone; the JavaScript pass adds live rendering. --}}
+        <label for="show-preview" class="flex min-h-11 cursor-pointer items-center gap-2 self-start text-sm font-medium">
+            <input id="show-preview" type="checkbox" checked aria-controls="body-preview" class="size-4 accent-accent-dark dark:accent-accent">
+            Show preview
+        </label>
+
+        <section id="body-preview" aria-labelledby="body-preview-heading"
+            class="rounded-md border border-gray-200 bg-gray-50 p-4 break-words group-has-[#show-preview:not(:checked)]:hidden dark:border-gray-800 dark:bg-gray-900">
+            <h2 id="body-preview-heading" class="text-sm font-medium">Preview</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Shows the body as last saved. Save to update it.</p>
+
+            @if (filled(old('body', $post->body)))
+                <x-markdown :source="old('body', $post->body)" class="mt-4" />
+            @else
+                <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Nothing to preview yet.</p>
+            @endif
+        </section>
+    </div>
 
     <div class="flex flex-col gap-1.5">
         <label for="published_at" class="text-sm font-medium">Schedule for</label>

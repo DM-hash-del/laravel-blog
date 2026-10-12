@@ -13,11 +13,11 @@
     </div>
 
     <div class="mt-6">
-        <x-list-controls :filters="$filters" :action="route('admin.posts.index')" />
+        <x-list-controls :filters="$filters" :action="route('admin.posts.index')" :statuses="App\Enums\PostStatus::cases()" />
     </div>
 
     @if ($posts->isEmpty())
-        <p class="mt-8 text-gray-600 dark:text-gray-400">{{ filled($filters['search']) ? 'No posts match “'.$filters['search'].'”.' : 'No posts yet.' }}</p>
+        <p class="mt-8 text-gray-600 dark:text-gray-400">{{ filled($filters['search']) || $filters['status'] !== null ? 'No posts match these filters.' : 'No posts yet.' }}</p>
     @else
         <ul class="mt-8 divide-y divide-gray-200 rounded-md border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
             @foreach ($posts as $post)

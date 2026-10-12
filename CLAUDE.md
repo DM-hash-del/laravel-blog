@@ -186,6 +186,7 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 
 - Hand-built login and logout only, using Laravel's built-in auth. Login is throttled and the session is regenerated on login.
 - Every admin route sits inside a group behind both the `auth` middleware and an admin Gate that checks `is_admin`.
+- There is no dashboard: logging in, or opening `/admin`, lands on the post list.
 - Admin credentials are never written in code. The seeder reads them from `.env`.
 
 ## Routing, controllers, validation
@@ -242,8 +243,8 @@ Distilled from `docs/decisions.md`, the single source of truth. When a design qu
 - Markdown is rendered in exactly one component, using Laravel's built-in converter with raw HTML stripped and unsafe links blocked. It is styled by the Tailwind typography plugin, including its dark variant.
 - Unescaped Blade output (`{!! !!}`) is allowed only in that Markdown component.
 - The excerpt doubles as the page's meta description.
-- Search, filter and sort happen in the database query, never in Blade or JavaScript. They are driven by validated URL query parameters that pagination keeps. Search matches post titles and category names. Defaults: no search, no filter, newest first. One reusable piece of query logic serves the home page, the archives and the admin list: `Post::published()` and `Post::listed()`, with parameters `search` and `sort=newest|oldest` validated by `PostListRequest`.
-- The first build uses reload-based AI results and plain checkbox toggles. Autosave, enhance without reload, a dark mode toggle, delete confirmations (including Move to trash) and a schedule date that appears only when Schedule is chosen, with a Confirm button, come in the later JavaScript pass.
+- Search, filter and sort happen in the database query, never in Blade or JavaScript. They are driven by validated URL query parameters that pagination keeps. Search matches post titles and category names. Defaults: no search, no filter, newest first. One reusable piece of query logic serves the home page, the archives and the admin list: `Post::published()` and `Post::listed()`, with parameters `search` and `sort=newest|oldest` validated by `PostListRequest`. The admin list alone also filters by `status` (validated by `Admin\PostListRequest`); public pages ignore it.
+- The first build uses reload-based AI results and plain checkbox toggles. Autosave, enhance without reload, a dark mode toggle, delete confirmations (including Move to trash) and a schedule date that appears only when Schedule is chosen, with a Confirm button, and a live Markdown preview (re-rendered as the admin types through a throttled admin-only endpoint that uses the same Markdown component) come in the later JavaScript pass. The editor's body preview already exists, showing the last saved body, with a CSS-only show/hide checkbox.
 
 ## Design
 

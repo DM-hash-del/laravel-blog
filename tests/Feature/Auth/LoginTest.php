@@ -22,7 +22,7 @@ test('the login page renders for guests', function () {
 test('a logged-in user visiting the login page is sent to the admin area', function () {
     $this->actingAs($this->admin)
         ->get(route('login'))
-        ->assertRedirect(route('admin.dashboard'));
+        ->assertRedirect(route('admin.posts.index'));
 });
 
 test('the admin can log in and the session is regenerated', function () {
@@ -32,7 +32,7 @@ test('the admin can log in and the session is regenerated', function () {
     $this->post(route('login.store'), [
         'email' => 'admin@example.com',
         'password' => 'correct-horse-battery',
-    ])->assertRedirect(route('admin.dashboard'));
+    ])->assertRedirect(route('admin.posts.index'));
 
     $this->assertAuthenticatedAs($this->admin);
     expect(session()->getId())->not->toBe($sessionIdBeforeLogin);

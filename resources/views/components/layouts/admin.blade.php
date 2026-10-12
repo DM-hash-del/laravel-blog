@@ -11,7 +11,7 @@
     <body class="min-h-screen bg-gray-50 font-sans text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
         <header class="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
             <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-                <a href="{{ route('admin.dashboard') }}" class="flex min-h-11 items-center font-semibold text-gray-900 dark:text-gray-100">
+                <a href="{{ route('admin.posts.index') }}" class="flex min-h-11 items-center font-semibold text-gray-900 dark:text-gray-100">
                     {{ config('app.name') }}
                 </a>
 

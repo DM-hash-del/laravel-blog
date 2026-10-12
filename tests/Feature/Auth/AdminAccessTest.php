@@ -25,9 +25,15 @@ test('an admin can open the admin area', function () {
     $admin = User::factory()->admin()->create();
 
     $this->actingAs($admin)
-        ->get(route('admin.dashboard'))
+        ->get(route('admin.posts.index'))
         ->assertOk()
         ->assertSee('Log out');
+});
+
+test('opening the admin root takes the admin to the post list', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.dashboard'))
+        ->assertRedirect(route('admin.posts.index'));
 });
 
 test('the admin gate allows only admins', function () {
