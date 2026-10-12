@@ -181,7 +181,7 @@ Five tables plus the pivot, created in this order because foreign keys need thei
 | Code layout | App\Services\PostAssistant is the one class that calls OpenAI. App\Services\AiAssist holds FieldStates (works out each field's state), RequestBuilder (builds the payload and schema, unit-tested) and AiAssistFailed (the friendly error) |
 | Minimum content | Generate / enhance needs at least one of: a title of 10+ characters, an excerpt of 40+, a body of 200+ after trimming, a category, or 3+ tags. If every field is filled and none is ticked, there is nothing to do and nothing is sent |
 | Error records | A failed generation stores only a short reason code (timeout, http_429, http_401, refusal, length, malformed), never OpenAI's error text, which can echo part of the key |
-| Repeated requests | Only one AI request per admin runs at a time (a cache lock). A repeat of the same request, such as a double-click, waits for the running one and reuses its outcome for 15 seconds instead of calling OpenAI again; different input waits its turn. A request that waits too long is turned away with a friendly message. Hitting the rate limit returns to the editor with the input kept and a "try again in N seconds" message, never a bare 429 page |
+| Repeated requests | Only one AI request per admin runs at a time (a cache lock). A repeat of the same request, such as a double-click, waits for the running one and reuses its outcome for 15 seconds instead of calling OpenAI again; different input waits its turn. A request that waits too long is turned away with a friendly message. Hitting the rate limit returns to the editor with the input kept and a "try again in N seconds" message, never a bare 429 page. The JavaScript pass (8F) shows the wait as a live countdown and keeps Generate disabled until it ends |
 | Editor flow | Title, excerpt, body and tags each have an Enhance with AI checkbox, ticked by default when empty; category has none. Generate / enhance with AI sits below the save buttons so Enter still saves. Suggestions return as form input; a suggested category becomes the selected category, matching tags are ticked and unmatched tag names go into a New tags field. New tags (also usable by hand, comma separated, up to 6) are created only when the post is saved, reusing an existing tag whose name matches ignoring case |
 
 **Should be there**
@@ -436,8 +436,34 @@ Each stage follows the same loop: plan mode, approve the plan, build, run the te
 | 5. Public site | Layouts, home list, post page with the Markdown component, archives, search, filter and sort, dark mode | Mobile-first. Search, filter and sort is a good cloud task |
 | 6. AI integration | The service class, logging, the enhance toggles in the editor, the throttle | Tests with the HTTP call faked |
 | 7. Scheduler | The scheduled publishing task and the overdue marker | Tests that move the clock |
-| 8. JavaScript pass | Autosave, enhance without reload, dark mode toggle, delete confirmation (including a confirmation dialog for Move to trash on posts), the post editor's schedule date shown only once Schedule is chosen and submitted with a Confirm button, live Markdown preview (the editor preview re-renders as the admin types by sending the body to a throttled admin-only preview endpoint that renders it through the same Markdown component, so Markdown is still rendered in one place; showing and hiding the preview stays CSS-only); AI request page lock (pressing Generate / enhance sends the form with fetch(), marks the form inert and shows a Generating… overlay with a Cancel button that aborts the fetch with AbortController and unlocks the form; the server-side single-request lock stays as the backstop) | Good cloud task, checked manually in the browser |
+| 8. JavaScript pass | Run as sub-stages 8A to 8G (see Stage 8 sub-stages below): delete confirmations, dark mode toggle, schedule reveal with Confirm, live Markdown preview, enhance without reload with a page lock and Cancel, a live rate-limit countdown, and autosave | Good cloud task, checked manually in the browser |
 | 9. Deploy | Build, upload, the protection test, cron jobs, migrate, seed, security pass | Follows the hosting step |
+
+### Stage 8 sub-stages
+
+Stage 8 is split so features that share the editor flow are built once, in dependency order. Each sub-stage runs the full loop (plan mode, approval, build, tests, review skill, commit). Done means the server tests pass and the admin has checked the behaviour in the browser at phone width, light and dark.
+
+Ground rules for every sub-stage:
+
+- Plain JavaScript ES modules bundled by Vite in resources/js. No new dependencies (no Alpine, no framework).
+- Progressive enhancement: every page keeps working with JavaScript off, exactly as before. Modules attach only to elements with data- hooks.
+- Server rules stay on the server: validation, the minimum-content check, the throttle, the single-request lock and visibility never move into JavaScript.
+- Pest covers every new or changed endpoint, including JSON responses. JavaScript behaviour is checked manually in the browser.
+
+| Sub-stage | What gets built | Depends on | Why in this order |
+| --- | --- | --- | --- |
+| 8A. Foundations and delete confirmations | The app.js entry that loads modules by data- hook; a shared dialog-based confirm; confirmation before deleting a category or tag and before Move to trash on a post | Nothing | Small and self-contained; sets the module, data-hook and dialog patterns every later sub-stage reuses |
+| 8B. Dark mode toggle | Tailwind v4 class-based dark variant with the system setting as the default; a no-flash script in the head; a toggle in both layouts, remembered in localStorage | 8A | Changes how every dark: class applies, so later sub-stages are checked in both modes through the toggle |
+| 8C. Schedule reveal and Confirm | The schedule date stays hidden until Schedule is pressed, then a Confirm and Cancel pair submits or backs out | 8A | Editor-only with no server change; settles the button area before the AI controls change |
+| 8D. Live Markdown preview | A throttled admin-only preview endpoint that renders through the shared Markdown component; the editor preview updates as the admin types (debounced); show and hide stays CSS-only | 8A | First fetch() sub-stage: builds the shared fetch helper (CSRF header, JSON errors, aborting stale requests) reused by 8E to 8G |
+| 8E. Enhance without reload and page lock | The assist endpoint also answers JSON (the redirect stays for no-JS); suggestions fill the fields, category and tags in place and refresh the preview; the form goes inert behind a Generating… overlay with a Cancel button that aborts the request | 8D | Needs the fetch helper and the live preview; the server-side single-request lock stays as the backstop |
+| 8F. Rate-limit countdown | The limiter answers JSON 429 with the seconds to wait for fetch requests, and the redirect message carries the seconds as a data attribute; a live countdown replaces the fixed number and Generate stays disabled until it ends | 8E | Reads the responses 8E handles |
+| 8G. Autosave | Saving the editor periodically and on change | 8D, 8E, 8C | Overlaps with every editor feature (pauses during the AI page lock, refreshes the preview, never publishes or schedules), so it goes last |
+
+Questions to settle when each sub-stage is planned:
+
+- 8B: a three-way toggle (System, Light, Dark) or two-way.
+- 8G: whether autosave covers only drafts and new posts (saving a published post while typing would change the live page), whether the first autosave of a new post creates the draft and moves to its edit page, and what happens while the title is too short to save.
 
 **Should be there**
 
