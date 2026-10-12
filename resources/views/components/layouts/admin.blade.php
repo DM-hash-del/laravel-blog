@@ -57,5 +57,7 @@
 
             {{ $slot }}
         </main>
+
+        <x-confirm-dialog />
     </body>
 </html>

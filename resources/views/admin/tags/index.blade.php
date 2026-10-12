@@ -31,7 +31,8 @@
                             Edit
                         </a>
 
-                        <form method="POST" action="{{ route('admin.tags.destroy', $tag) }}">
+                        <form method="POST" action="{{ route('admin.tags.destroy', $tag) }}"
+                            data-confirm="Delete the tag “{{ $tag->name }}”? It will be removed from {{ trans_choice('{0} no posts|{1} :count post|[2,*] :count posts', $tag->posts_count) }}. This can't be undone." data-confirm-label="Delete tag">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="min-h-11 rounded-md border border-gray-300 px-4 text-sm font-medium text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 dark:border-gray-700 dark:text-red-400 dark:hover:bg-red-950">

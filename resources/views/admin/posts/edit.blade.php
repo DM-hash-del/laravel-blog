@@ -18,7 +18,8 @@
 
         @include('admin.posts._form', ['action' => route('admin.posts.update', $post)])
 
-        <form method="POST" action="{{ route('admin.posts.destroy', $post) }}" class="mt-10 border-t border-gray-200 pt-6 dark:border-gray-800">
+        <form method="POST" action="{{ route('admin.posts.destroy', $post) }}" class="mt-10 border-t border-gray-200 pt-6 dark:border-gray-800"
+            data-confirm="Move “{{ $post->title }}” to the trash? It will be hidden from the site, and you can restore it from the Trash page." data-confirm-label="Move to trash">
             @csrf
             @method('DELETE')
             <button type="submit" class="min-h-11 rounded-md border border-gray-300 px-4 text-sm font-medium text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 dark:border-gray-700 dark:text-red-400 dark:hover:bg-red-950">

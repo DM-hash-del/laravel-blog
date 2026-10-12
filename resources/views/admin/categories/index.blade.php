@@ -31,7 +31,8 @@
                             Edit
                         </a>
 
-                        <form method="POST" action="{{ route('admin.categories.destroy', $category) }}">
+                        <form method="POST" action="{{ route('admin.categories.destroy', $category) }}"
+                            data-confirm="Delete the category “{{ $category->name }}”? This can't be undone." data-confirm-label="Delete category">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="min-h-11 rounded-md border border-gray-300 px-4 text-sm font-medium text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 dark:border-gray-700 dark:text-red-400 dark:hover:bg-red-950">
