@@ -156,13 +156,18 @@
         </p>
         @php($assistUrl = $post->exists ? route('admin.posts.assist', $post) : route('admin.posts.assist'))
         <button type="submit" formaction="{{ $assistUrl }}" formnovalidate data-ai-assist data-assist-url="{{ $assistUrl }}"
-            class="{{ $secondaryButton }} self-start bg-white dark:bg-gray-900">
+            @if ($aiRetryAfter > 0) disabled data-retry-after="{{ $aiRetryAfter }}" @endif
+            class="{{ $secondaryButton }} self-start bg-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-900">
             Generate / enhance with AI
         </button>
-        @error('ai')
-            <p role="alert" class="text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
-        @enderror
-        <p data-ai-status role="status" aria-live="polite" hidden class="text-sm"></p>
+        @if ($aiRetryAfter > 0)
+            <p data-ai-status role="status" aria-live="polite" class="text-sm text-red-700 dark:text-red-400">Too many AI requests. Try again in {{ $aiRetryAfter }} seconds.</p>
+        @else
+            @error('ai')
+                <p role="alert" class="text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
+            @enderror
+            <p data-ai-status role="status" aria-live="polite" hidden class="text-sm"></p>
+        @endif
     </div>
 </form>
 

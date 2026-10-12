@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\PostRequest;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
+use App\Services\AiAssist\AiRateLimit;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -33,11 +34,11 @@ class PostController extends Controller
     /**
      * Show the editor for a new post.
      */
-    public function create(): View
+    public function create(AiRateLimit $aiRateLimit): View
     {
         return view('admin.posts.create', [
             'post' => new Post,
-            ...$this->formOptions(),
+            ...$this->formOptions($aiRateLimit),
         ]);
     }
 
@@ -57,13 +58,13 @@ class PostController extends Controller
     /**
      * Show the editor for an existing post, whatever its status.
      */
-    public function edit(Post $post): View
+    public function edit(Post $post, AiRateLimit $aiRateLimit): View
     {
         $post->load('tags');
 
         return view('admin.posts.edit', [
             'post' => $post,
-            ...$this->formOptions(),
+            ...$this->formOptions($aiRateLimit),
         ]);
     }
 
@@ -152,15 +153,16 @@ class PostController extends Controller
     }
 
     /**
-     * Get the categories and tags the editor offers.
+     * Get the categories and tags the editor offers, and any AI rate-limit wait still running.
      *
-     * @return array{categories: Collection<int, Category>, tags: Collection<int, Tag>}
+     * @return array{categories: Collection<int, Category>, tags: Collection<int, Tag>, aiRetryAfter: int}
      */
-    private function formOptions(): array
+    private function formOptions(AiRateLimit $aiRateLimit): array
     {
         return [
             'categories' => Category::orderBy('name')->get(),
             'tags' => Tag::orderBy('name')->get(),
+            'aiRetryAfter' => $aiRateLimit->secondsRemaining(auth()->user()),
         ];
     }
 }

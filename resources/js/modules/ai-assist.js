@@ -7,6 +7,11 @@ import { HttpError, isAbortError, postForm } from '../lib/http.js';
  * submits the form and the page reloads with the suggestions. While a request runs the form is inert behind an overlay with a Cancel button.
  * Suggestions are filled in place and each changed field fires an input event,
  * so the live preview re-renders the new body. Nothing is saved.
+ *
+ * When the AI rate limit is hit, Generate stays disabled behind a live countdown.
+ * The wait comes from the server: data-retry-after on page load (rendered fresh
+ * every time, so a refresh or second tab stays in sync) or retry_after on a 429.
+ * It counts against a fixed deadline, so slowed background tabs don't drift.
  */
 const statusStyles = {
     success: ['text-gray-700', 'dark:text-gray-300'],
@@ -102,10 +107,51 @@ export function init() {
 
     cancel.addEventListener('click', () => controller?.abort());
 
+    let countdownTimer = null;
+
+    const waitMessage = (seconds) => `Too many AI requests. Try again in ${seconds} ${seconds === 1 ? 'second' : 'seconds'}.`;
+
+    const startCountdown = (seconds) => {
+        clearInterval(countdownTimer);
+
+        const deadline = Date.now() + seconds * 1000;
+        let shown = null;
+
+        button.disabled = true;
+
+        const tick = () => {
+            const remaining = Math.ceil((deadline - Date.now()) / 1000);
+
+            if (remaining <= 0) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+                button.disabled = false;
+                delete button.dataset.retryAfter;
+                showStatus('You can use Generate / enhance again.', 'success');
+
+                return;
+            }
+
+            if (remaining !== shown) {
+                shown = remaining;
+                showStatus(waitMessage(remaining), 'error');
+            }
+        };
+
+        tick();
+        countdownTimer = setInterval(tick, 250);
+    };
+
+    const initialWait = Number.parseInt(button.dataset.retryAfter ?? '', 10);
+
+    if (initialWait > 0) {
+        startCountdown(initialWait);
+    }
+
     button.addEventListener('click', async (event) => {
         event.preventDefault();
 
-        if (controller) {
+        if (controller || countdownTimer) {
             return;
         }
 
@@ -121,6 +167,8 @@ export function init() {
         } catch (error) {
             if (isAbortError(error)) {
                 showStatus('Cancelled. Your text is unchanged.', 'success');
+            } else if (error instanceof HttpError && error.status === 429 && (error.data?.retry_after ?? error.retryAfter) > 0) {
+                startCountdown(error.data?.retry_after ?? error.retryAfter);
             } else if (error instanceof HttpError) {
                 showStatus(error.data?.errors?.ai?.[0] ?? error.data?.message ?? 'Something went wrong. Your text is unchanged.', 'error');
             } else {
